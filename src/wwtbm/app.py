@@ -16,6 +16,110 @@ leaderboard_data = [
     {"name": "Alex", "score": 32000},
 ]
 
+# Custom CSS for the hexagonal shapes
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <style>
+            .option-box {
+                background-color: #000066;
+                position: relative;
+                color: white;
+                padding: 15px 25px;
+                margin: 10px 0;
+                height: 60px;
+                display: flex;
+                align-items: center;
+                clip-path: polygon(30px 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 30px 100%, 0% 50%);
+            }
+            
+            .option-box::after {
+                content: '';
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                right: 2px;
+                bottom: 2px;
+                background: inherit;
+                clip-path: polygon(30px 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 30px 100%, 0% 50%);
+                z-index: 1;
+            }
+            
+            .option-box::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: #4169E1;
+                clip-path: polygon(30px 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 30px 100%, 0% 50%);
+            }
+            
+            .option-box:hover {
+                background-color: #000099;
+                cursor: pointer;
+            }
+            
+            .question-box {
+                background-color: #000066;
+                position: relative;
+                color: white;
+                padding: 20px 30px;
+                margin: 20px 0;
+                min-height: 80px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                clip-path: polygon(40px 0%, calc(100% - 40px) 0%, 100% 50%, calc(100% - 40px) 100%, 40px 100%, 0% 50%);
+            }
+            
+            .question-box::after {
+                content: '';
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                right: 2px;
+                bottom: 2px;
+                background: inherit;
+                clip-path: polygon(40px 0%, calc(100% - 40px) 0%, 100% 50%, calc(100% - 40px) 100%, 40px 100%, 0% 50%);
+                z-index: 1;
+            }
+            
+            .question-box::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: #4169E1;
+                clip-path: polygon(40px 0%, calc(100% - 40px) 0%, 100% 50%, calc(100% - 40px) 100%, 40px 100%, 0% 50%);
+            }
+
+            /* Ensure text appears above the pseudo-elements */
+            .option-box span, .question-box span {
+                position: relative;
+                z-index: 2;
+            }
+        </style>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''
+
 # Layout
 app.layout = html.Div([
     # Header
@@ -26,6 +130,44 @@ app.layout = html.Div([
     
     # Main content container
     dbc.Container([
+        # Question Section
+        dbc.Row([
+            dbc.Col([
+                html.Div([
+                    # Question
+                    html.Div(
+                        html.Span("What is the capital city of France?"),
+                        className='question-box',
+                        style={'fontSize': '24px', 'textAlign': 'center'}
+                    ),
+                    
+                    # Options container
+                    html.Div([
+                        dbc.Row([
+                            dbc.Col(
+                                html.Div(html.Span("A: Paris"), className='option-box'),
+                                width=6
+                            ),
+                            dbc.Col(
+                                html.Div(html.Span("B: London"), className='option-box'),
+                                width=6
+                            ),
+                        ]),
+                        dbc.Row([
+                            dbc.Col(
+                                html.Div(html.Span("C: Berlin"), className='option-box'),
+                                width=6
+                            ),
+                            dbc.Col(
+                                html.Div(html.Span("D: Madrid"), className='option-box'),
+                                width=6
+                            ),
+                        ]),
+                    ], style={'marginTop': '20px'})
+                ], style={'marginBottom': '30px'})
+            ], width=12)
+        ]),
+        
         dbc.Row([
             # Timer and Leaderboard Column
             dbc.Col([
@@ -67,7 +209,7 @@ app.layout = html.Div([
             ], width=8)
         ])
     ], fluid=True)
-], style={'backgroundColor': '#121212', 'minHeight': '100vh', 'padding': '20px'})
+], style={'backgroundColor': '#00003B', 'minHeight': '100vh', 'padding': '20px'})
 
 # Timer callback
 @app.callback(
