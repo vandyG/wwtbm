@@ -1,145 +1,90 @@
 import dash
-from dash import dcc, html, Input, Output, State, callback
+from dash import dcc, html, Input, Output, State
 import dash_bootstrap_components as dbc
-import plotly.express as px
-import pandas as pd
-import time
+import random
 
-# Sample quiz data
+# Initialize app
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG])
+
+# Sample questions in increasing difficulty order
 questions = [
-    {"question": "What is the capital of France?", "options": ["Paris", "London", "Berlin", "Madrid"], "answer": "Paris"},
-    {"question": "Which planet is known as the Red Planet?", "options": ["Earth", "Mars", "Jupiter", "Saturn"], "answer": "Mars"},
-    {"question": "Who wrote 'To Kill a Mockingbird'?", "options": ["Harper Lee", "Mark Twain", "J.K. Rowling", "Ernest Hemingway"], "answer": "Harper Lee"},
+    {"question": "What is the capital of France?", "options": ["Berlin", "Madrid", "Paris", "Rome"], "answer": "Paris"},
+    {"question": "What is 5 + 7?", "options": ["10", "12", "14", "16"], "answer": "12"},
+    {"question": "Which planet is known as the Red Planet?", "options": ["Earth", "Mars", "Jupiter", "Venus"], "answer": "Mars"},
 ]
 
-# Initialize the app
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-app.title = "Who Wants to Be a Millionaire Quiz"
+prizes = ["$100", "$200", "$500"]
+current_question_index = 0
 
-# Layout of the app
-app.layout = dbc.Container(
-    [
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        html.H1("Who Wants to Be a Millionaire", className="text-center text-warning mb-4"),
-                        html.Div(id="question-section", className="mb-4"),
-                        dbc.Button("Next Question", id="next-question-btn", color="success", className="me-2"),
-                        dbc.Button("Previous Question", id="prev-question-btn", color="warning", className="me-2"),
-                        html.Div(id="timer", className="mt-3 text-danger"),
-                    ],
-                    width=6,
-                ),
-                dbc.Col(
-                    [
-                        html.H3("Leaderboard", className="text-center text-primary mb-3"),
-                        html.Div(id="leaderboard-section", className="mb-4"),
-                    ],
-                    width=3,
-                ),
-                dbc.Col(
-                    [
-                        html.H3("Quiz Analytics", className="text-center text-info mb-3"),
-                        dcc.Graph(id="quiz-analytics"),
-                    ],
-                    width=3,
-                ),
-            ]
-        ),
-        dcc.Interval(id="timer-interval", interval=1000, n_intervals=0),
-        dcc.Store(id="current-question-index", data=0),
-        dcc.Store(id="quiz-responses", data={}),
-    ],
-    fluid=True,
-    className="p-5 bg-dark text-white",
-)
-
-# Callback to update the question section
-@app.callback(
-    Output("question-section", "children"),
-    Input("current-question-index", "data"),
-)
-def update_question_section(current_question_index):
-    question_data = questions[current_question_index]
-    return [
-        html.H4(f"Question {current_question_index + 1}", className="text-warning"),
-        html.P(question_data["question"], className="lead"),
-        dbc.ListGroup(
-            [
-                dbc.ListGroupItem(option, className="mb-2") for option in question_data["options"]
-            ]
-        ),
-    ]
-
-# Callback to update the leaderboard
-@app.callback(
-    Output("leaderboard-section", "children"),
-    Input("quiz-responses", "data"),
-)
-def update_leaderboard(responses):
-    # Sample leaderboard data (replace with real logic)
-    leaderboard_data = [
-        {"name": "Player 1", "score": 10},
-        {"name": "Player 2", "score": 8},
-        {"name": "Player 3", "score": 5},
-    ]
-    return dbc.ListGroup(
-        [
-            dbc.ListGroupItem(f"{player['name']}: {player['score']} points", className="mb-2")
-            for player in leaderboard_data
-        ]
+# Card style for "Who Wants to Be a Millionaire?" layout
+def get_question_card(question):
+    return dbc.Card(
+        dbc.CardBody([
+            html.H4(question, className="card-title", style={"textAlign": "center", "color": "white"}),
+        ]),
+        style={"marginBottom": "20px", "backgroundColor": "#001f3f", "borderRadius": "15px", "boxShadow": "0px 4px 8px rgba(0, 0, 0, 0.5)"},
     )
 
-# Callback to update the quiz analytics
-@app.callback(
-    Output("quiz-analytics", "figure"),
-    Input("quiz-responses", "data"),
-)
-def update_quiz_analytics(responses):
-    # Sample analytics data (replace with real logic)
-    analytics_data = {
-        "Correct": 5,
-        "Incorrect": 3,
-    }
-    fig = px.pie(
-        names=list(analytics_data.keys()),
-        values=list(analytics_data.values()),
-        title="Quiz Performance",
+def get_option_card(option, option_id):
+    return dbc.Card(
+        dbc.CardBody([
+            dbc.RadioItems(
+                options=[{"label": option, "value": option}],
+                id=option_id,
+                inline=False,
+                style={"color": "white"}
+            )
+        ]),
+        style={"margin": "10px auto", "backgroundColor": "#001f3f", "borderRadius": "10px", "boxShadow": "0px 3px 6px rgba(0, 0, 0, 0.3)", "padding": "15px"}
     )
-    return fig
 
-# Callback to handle next/previous question navigation
+app.layout = dbc.Container([
+    dbc.Row([
+        dbc.Col(html.H1("Who Wants to Be a Millionaire?", style={"textAlign": "center", "color": "gold"}), width=12)
+    ]),
+    dbc.Row([
+        dbc.Col(id="question-container", width=12)
+    ]),
+    dbc.Row([
+        dbc.Col(id="options-container", width=12)
+    ]),
+    dbc.Row([
+        dbc.Col(
+            dbc.Button("Submit", id="submit-button", color="warning", n_clicks=0, style={"width": "100%", "marginTop": "20px"}),
+            width=12
+        )
+    ]),
+    dbc.Row([
+        dbc.Col(id="feedback", width=12, style={"textAlign": "center", "color": "lime", "marginTop": "10px"})
+    ]),
+    dbc.Row([
+        dbc.Col(id="prize", width=12, style={"textAlign": "center", "color": "gold", "marginTop": "20px"})
+    ]),
+    dbc.Row([
+        dbc.Col(html.Div("Lifelines: 50/50 | Phone a Friend | Ask the Audience", style={"textAlign": "center", "color": "cyan", "marginTop": "20px"}), width=12)
+    ]),
+], style={"padding": "20px", "backgroundColor": "black", "minHeight": "100vh"})
+
 @app.callback(
-    Output("current-question-index", "data"),
-    Input("next-question-btn", "n_clicks"),
-    Input("prev-question-btn", "n_clicks"),
-    State("current-question-index", "data"),
-    prevent_initial_call=True,
+    [Output("question-container", "children"),
+     Output("options-container", "children"),
+     Output("prize", "children")],
+    [Input("submit-button", "n_clicks")],
+    [State("options-container", "children")]
 )
-def navigate_questions(next_clicks, prev_clicks, current_question_index):
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        return current_question_index
-    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    if button_id == "next-question-btn" and current_question_index < len(questions) - 1:
-        return current_question_index + 1
-    elif button_id == "prev-question-btn" and current_question_index > 0:
-        return current_question_index - 1
-    return current_question_index
+def update_question(n_clicks, selected_option):
+    global current_question_index
+    if current_question_index >= len(questions):
+        return "Congratulations! You've won!", "", "Total Prize: " + prizes[-1]
 
-# Callback to update the timer
-@app.callback(
-    Output("timer", "children"),
-    Input("timer-interval", "n_intervals"),
-    State("current-question-index", "data"),
-)
-def update_timer(n_intervals, current_question_index):
-    time_left = 30 - (n_intervals % 30)  # 30-second timer for each question
-    if time_left == 0:
-        return html.H4("Time's up!", className="text-danger")
-    return html.H4(f"Time left: {time_left} seconds", className="text-warning")
+    q = questions[current_question_index]
+    options = dbc.Row([
+        dbc.Col(get_option_card(opt, f"option-{i}"), width=6) for i, opt in enumerate(q["options"])
+    ], justify="center")
 
-# Run the app
+    current_prize = f"Current Prize: {prizes[current_question_index]}"
+
+    return get_question_card(q["question"]), options, current_prize
+
 if __name__ == "__main__":
     app.run_server(debug=True)
