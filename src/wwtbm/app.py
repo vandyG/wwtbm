@@ -58,16 +58,29 @@ CUSTOM_STYLES = """
 }
 
 .hex-button {
-    width: 250px;
-    height: 60px;
+    width: 100%; /* Make buttons flexible */
+    max-width: 250px; /* Set a maximum width */
+    min-height: 80px;
     border: none;
     padding: 0;
-    margin: 10px;
     justify-content: center;
 }
 
 .hex-button span {
     font-weight: 500;
+}
+
+/* Media query for smaller screens */
+@media (max-width: 768px) {
+    .controls-container {
+        flex-direction: column !important; /* Force column layout */
+        align-items: center !important; /* Center buttons vertically */
+    }
+
+    .hex-button {
+        width: 100%; /* Full width when stacked */
+        max-width: 100%; /* Allow buttons to take full width */
+    }
 }
 """
 
@@ -134,19 +147,25 @@ def create_game_layout(image_path):
                         [
                             # Timer Column
                             dbc.Col(
-                                dbc.Card(
-                                    [
-                                        html.Div(html.Span("Timer"), className="hex-shape question-box mb-0"),
-                                        dbc.CardBody(
-                                            html.H2(
-                                                "30",
-                                                id="timer-display",
-                                                style={"color": "#FFD700", "textAlign": "center", "fontSize": "48px"},
+                                [
+                                    html.Div(html.Span("Timer"), className="hex-shape question-box mb-0"),
+                                    dbc.Card(
+                                        [
+                                            dbc.CardBody(
+                                                html.H2(
+                                                    "30",
+                                                    id="timer-display",
+                                                    style={
+                                                        "color": "#FFD700",
+                                                        "textAlign": "center",
+                                                        "fontSize": "48px",
+                                                    },
+                                                ),
                                             ),
-                                        ),
-                                    ],
-                                    style={"backgroundColor": "#00003B"},
-                                ),
+                                        ],
+                                        style={"backgroundColor": "#00003B"},
+                                    ),
+                                ],
                                 width=6,
                             ),
                             # Control Buttons
@@ -159,15 +178,17 @@ def create_game_layout(image_path):
                                             ("Next", "next-question"),
                                         ]
                                     ],
+                                    className="controls-container mb-0 mt-3",
                                     style={
                                         "display": "flex",
                                         "justifyContent": "center",
                                         "gap": "20px",
-                                        "marginTop": "20px",
                                     },
                                 ),
+                                width=6,  # Ensure the column has a width
                             ),
                         ],
+                        style={"display": "flex", "flexWrap": "wrap"},  # Allow wrapping on smaller screens
                     ),
                     # Statistics Section
                     dbc.Row(
@@ -203,7 +224,6 @@ def create_game_layout(image_path):
                                 ],
                             ),
                         ),
-                        # width=8,
                     ),
                 ],
                 fluid=True,
