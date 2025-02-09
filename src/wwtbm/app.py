@@ -1,352 +1,240 @@
 import base64
 
 import dash_bootstrap_components as dbc
-from dash import Dash, Input, Output, html
+from dash import Dash, html
 
-# Initialize the Dash app with a dark theme
-app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY], assets_folder="assets")
 
-# Sample leaderboard data
-leaderboard_data = [
-    {"name": "John", "score": 500000},
-    {"name": "Sarah", "score": 250000},
-    {"name": "Mike", "score": 125000},
-    {"name": "Emma", "score": 64000},
-    {"name": "Alex", "score": 32000},
-]
+# Simplified CSS with consistent styling
+CUSTOM_STYLES = """
+.hex-shape {
+    background-color: #000066;
+    position: relative;
+    color: white;
+    display: flex;
+    align-items: center;
+    clip-path: polygon(30px 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 30px 100%, 0% 50%);
+}
 
-# Custom CSS for the hexagonal shapes
-app.index_string = """
+.hex-shape::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: inherit;
+    clip-path: polygon(30px 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 30px 100%, 0% 50%);
+    z-index: 1;
+}
+
+.hex-shape::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: #4169E1;
+    clip-path: polygon(30px 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 30px 100%, 0% 50%);
+}
+
+.hex-shape:hover {
+    background-color: #000099;
+    cursor: pointer;
+}
+
+.hex-shape span {
+    position: relative;
+    z-index: 2;
+    font-size: 18px;
+}
+
+.option-box { 
+    padding: 15px 25px;
+    height: 60px;
+    margin: 10px 0;
+}
+
+.question-box {
+    padding: 20px 30px;
+    min-height: 80px;
+    margin: 20px 0;
+    justify-content: center;
+}
+
+.hex-button {
+    width: 250px;
+    height: 60px;
+    border: none;
+    padding: 0;
+    margin: 10px;
+    justify-content: center;
+}
+
+.hex-button span {
+    font-weight: 500;
+}
+"""
+
+
+def create_game_layout(image_path):
+    encoded_image = base64.b64encode(open(image_path, "rb").read()).decode()
+
+    return html.Div(
+        [
+            # Logo
+            html.Div(
+                html.Img(src=f"data:image/svg;base64,{encoded_image}", style={"height": "20%", "width": "20%"}),
+                style={"textAlign": "center"},
+            ),
+            # Main container
+            dbc.Container(
+                [
+                    # Question and Options
+                    dbc.Row(
+                        dbc.Col(
+                            html.Div(
+                                [
+                                    html.Div(
+                                        html.Span("What is the capital city of France?"),
+                                        className="hex-shape question-box",
+                                        style={"fontSize": "24px", "textAlign": "center"},
+                                    ),
+                                    # Options grid
+                                    html.Div(
+                                        [
+                                            dbc.Row(
+                                                [
+                                                    dbc.Col(
+                                                        html.Div(
+                                                            html.Span(f"{opt[0]}: {opt[1]}"),
+                                                            className="hex-shape option-box",
+                                                        ),
+                                                        width=6,
+                                                    )
+                                                    for opt in [("A", "Paris"), ("B", "London")]
+                                                ],
+                                            ),
+                                            dbc.Row(
+                                                [
+                                                    dbc.Col(
+                                                        html.Div(
+                                                            html.Span(f"{opt[0]}: {opt[1]}"),
+                                                            className="hex-shape option-box",
+                                                        ),
+                                                        width=6,
+                                                    )
+                                                    for opt in [("C", "Berlin"), ("D", "Madrid")]
+                                                ],
+                                            ),
+                                        ],
+                                        style={"marginTop": "20px"},
+                                    ),
+                                ],
+                            ),
+                        ),
+                    ),
+                    # Timer and Controls
+                    dbc.Row(
+                        [
+                            # Timer Column
+                            dbc.Col(
+                                dbc.Card(
+                                    [
+                                        html.Div(html.Span("Timer"), className="hex-shape question-box mb-0"),
+                                        dbc.CardBody(
+                                            html.H2(
+                                                "30",
+                                                id="timer-display",
+                                                style={"color": "#FFD700", "textAlign": "center", "fontSize": "48px"},
+                                            ),
+                                        ),
+                                    ],
+                                    style={"backgroundColor": "#00003B"},
+                                ),
+                                width=6,
+                            ),
+                            # Control Buttons
+                            dbc.Col(
+                                html.Div(
+                                    [
+                                        html.Button(html.Span(text), className="hex-shape hex-button", id=f"{id_}-btn")
+                                        for text, id_ in [
+                                            ("Previous", "prev-question"),
+                                            ("Next", "next-question"),
+                                        ]
+                                    ],
+                                    style={
+                                        "display": "flex",
+                                        "justifyContent": "center",
+                                        "gap": "20px",
+                                        "marginTop": "20px",
+                                    },
+                                ),
+                            ),
+                        ],
+                    ),
+                    # Statistics Section
+                    dbc.Row(
+                        dbc.Col(
+                            dbc.Card(
+                                [
+                                    dbc.CardHeader(
+                                        "Question Statistics",
+                                        style={"backgroundColor": "#1a1a1a", "color": "#FFD700"},
+                                    ),
+                                    dbc.CardBody(
+                                        html.Div(
+                                            [
+                                                html.H4(
+                                                    "Visualization Area",
+                                                    style={"color": "#FFD700", "textAlign": "center"},
+                                                ),
+                                                html.P(
+                                                    "Statistical visualizations for current question will appear here.",
+                                                    style={"color": "#ffffff", "textAlign": "center"},
+                                                ),
+                                            ],
+                                            id="visualization-container",
+                                            style={
+                                                "height": "400px",
+                                                "display": "flex",
+                                                "flexDirection": "column",
+                                                "justifyContent": "center",
+                                            },
+                                        ),
+                                        style={"backgroundColor": "#2a2a2a"},
+                                    ),
+                                ],
+                            ),
+                        ),
+                        # width=8,
+                    ),
+                ],
+                fluid=True,
+            ),
+        ],
+        style={"backgroundColor": "#00003B", "minHeight": "100vh", "padding": "20px"},
+    )
+
+
+app.index_string = f"""
 <!DOCTYPE html>
 <html>
     <head>
-        {%metas%}
-        <title>{%title%}</title>
-        {%favicon%}
-        {%css%}
-        <style>
-            .option-box {
-                background-color: #000066;
-                position: relative;
-                color: white;
-                padding: 15px 25px;
-                margin: 10px 0;
-                height: 60px;
-                display: flex;
-                align-items: center;
-                clip-path: polygon(30px 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 30px 100%, 0% 50%);
-            }
-
-            .option-box::after {
-                content: '';
-                position: absolute;
-                top: 2px;
-                left: 2px;
-                right: 2px;
-                bottom: 2px;
-                background: inherit;
-                clip-path: polygon(30px 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 30px 100%, 0% 50%);
-                z-index: 1;
-            }
-
-            .option-box::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: #4169E1;
-                clip-path: polygon(30px 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 30px 100%, 0% 50%);
-            }
-
-            .option-box:hover {
-                background-color: #000099;
-                cursor: pointer;
-            }
-
-            .question-box {
-                background-color: #000066;
-                position: relative;
-                color: white;
-                padding: 20px 30px;
-                margin: 20px 0;
-                min-height: 80px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                clip-path: polygon(40px 0%, calc(100% - 40px) 0%, 100% 50%, calc(100% - 40px) 100%, 40px 100%, 0% 50%);
-            }
-
-            .question-box::after {
-                content: '';
-                position: absolute;
-                top: 2px;
-                left: 2px;
-                right: 2px;
-                bottom: 2px;
-                background: inherit;
-                clip-path: polygon(40px 0%, calc(100% - 40px) 0%, 100% 50%, calc(100% - 40px) 100%, 40px 100%, 0% 50%);
-                z-index: 1;
-            }
-
-            .question-box::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: #4169E1;
-                clip-path: polygon(40px 0%, calc(100% - 40px) 0%, 100% 50%, calc(100% - 40px) 100%, 40px 100%, 0% 50%);
-            }
-
-            /* Ensure text appears above the pseudo-elements */
-            .option-box span, .question-box span {
-                position: relative;
-                z-index: 2;
-            }
-        </style>
+        {{%metas%}}
+        <title>{{%title%}}</title>
+        {{%favicon%}}
+        {{%css%}}
+        <style>{CUSTOM_STYLES}</style>
     </head>
     <body>
-        {%app_entry%}
+        {{%app_entry%}}
         <footer>
-            {%config%}
-            {%scripts%}
-            {%renderer%}
+            {{%config%}}
+            {{%scripts%}}
+            {{%renderer%}}
         </footer>
     </body>
 </html>
 """
 
-image_filename = "/home/vandy/work/datavis/wwtbm/src/assets/who-wants-to-be-a-millionaire.svg"
-image_filename = "/home/vandy/work/datavis/wwtbm/src/assets/WWTBAMUS2020Logo.webp"
-encoded_image = base64.b64encode(open(image_filename, "rb").read()).decode()
-
-# Layout
-app.layout = html.Div(
-    [
-        html.Div(
-            [
-                html.Img(
-                    src=f"data:image/svg;base64,{encoded_image}",
-                    style={"height": "20%", "width": "20%"},
-                ),
-            ],
-            style={"textAlign": "center"},
-        ),
-        # Header
-        # html.Div([
-        #     html.H1("Who Wants to be a Millionaire?",
-        #             style={'color': '#FFD700', 'textAlign': 'center', 'marginBottom': '30px'})
-        # ], style={'padding': '20px'}),
-        # Main content container
-        dbc.Container(
-            [
-                # Question Section
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                html.Div(
-                                    [
-                                        # Question
-                                        html.Div(
-                                            html.Span("What is the capital city of France?"),
-                                            className="question-box",
-                                            style={"fontSize": "24px", "textAlign": "center"},
-                                        ),
-                                        # Options container
-                                        html.Div(
-                                            [
-                                                dbc.Row(
-                                                    [
-                                                        dbc.Col(
-                                                            html.Div(
-                                                                html.Span("A: Paris"),
-                                                                className="option-box",
-                                                            ),
-                                                            width=6,
-                                                        ),
-                                                        dbc.Col(
-                                                            html.Div(
-                                                                html.Span("B: London"),
-                                                                className="option-box",
-                                                            ),
-                                                            width=6,
-                                                        ),
-                                                    ],
-                                                ),
-                                                dbc.Row(
-                                                    [
-                                                        dbc.Col(
-                                                            html.Div(
-                                                                html.Span("C: Berlin"),
-                                                                className="option-box",
-                                                            ),
-                                                            width=6,
-                                                        ),
-                                                        dbc.Col(
-                                                            html.Div(
-                                                                html.Span("D: Madrid"),
-                                                                className="option-box",
-                                                            ),
-                                                            width=6,
-                                                        ),
-                                                    ],
-                                                ),
-                                            ],
-                                            style={"marginTop": "20px"},
-                                        ),
-                                    ],
-                                    style={"marginBottom": "30px"},
-                                ),
-                            ],
-                            width=12,
-                        ),
-                    ],
-                ),
-                dbc.Row(
-                    [
-                        # Timer and Leaderboard Column
-                        dbc.Col(
-                            [
-                                # Timer Card
-                                dbc.Row(
-                                    [
-                                        html.Div(
-                                            html.Span("Timer"),
-                                            className="question-box mb-0",
-                                        ),
-                                        dbc.Card(
-                                            [
-                                                # dbc.CardHeader("Timer", style={'backgroundColor': '#1a1a1a', 'color': '#FFD700'}),
-                                                dbc.CardBody(
-                                                    [
-                                                        html.H2(
-                                                            id="timer-display",
-                                                            children="30",
-                                                            style={
-                                                                "color": "#FFD700",
-                                                                "textAlign": "center",
-                                                                "fontSize": "48px",
-                                                            },
-                                                        ),
-                                                    ],
-                                                    style={"backgroundColor": "#00003B"},
-                                                ),
-                                            ],
-                                            className="mb-4",
-                                            style={"backgroundColor": "#00003B"},
-                                        ),
-                                    ],
-                                ),
-                                # Leaderboard Card
-                                dbc.Card(
-                                    [
-                                        dbc.CardHeader(
-                                            "Leaderboard",
-                                            style={
-                                                "backgroundColor": "#1a1a1a",
-                                                "color": "#FFD700",
-                                            },
-                                        ),
-                                        dbc.CardBody(
-                                            [
-                                                html.Div(
-                                                    [
-                                                        html.Div(
-                                                            [
-                                                                html.H5(
-                                                                    f"{entry['name']}",
-                                                                    style={
-                                                                        "display": "inline-block",
-                                                                        "marginRight": "10px",
-                                                                    },
-                                                                ),
-                                                                html.Span(
-                                                                    f"${entry['score']:,}",
-                                                                    style={"color": "#FFD700"},
-                                                                ),
-                                                            ],
-                                                            className="mb-2",
-                                                        )
-                                                        for entry in leaderboard_data
-                                                    ],
-                                                    style={"backgroundColor": "#2a2a2a"},
-                                                ),
-                                            ],
-                                            style={"backgroundColor": "#2a2a2a"},
-                                        ),
-                                    ],
-                                ),
-                            ],
-                            width=4,
-                        ),
-                        # Visualization Section
-                        dbc.Col(
-                            [
-                                dbc.Card(
-                                    [
-                                        dbc.CardHeader(
-                                            "Question Statistics",
-                                            style={
-                                                "backgroundColor": "#1a1a1a",
-                                                "color": "#FFD700",
-                                            },
-                                        ),
-                                        dbc.CardBody(
-                                            [
-                                                html.Div(
-                                                    id="visualization-container",
-                                                    children=[
-                                                        html.H4(
-                                                            "Visualization Area",
-                                                            style={
-                                                                "color": "#FFD700",
-                                                                "textAlign": "center",
-                                                            },
-                                                        ),
-                                                        html.P(
-                                                            "Statistical visualizations for current question will appear here.",
-                                                            style={
-                                                                "color": "#ffffff",
-                                                                "textAlign": "center",
-                                                            },
-                                                        ),
-                                                    ],
-                                                    style={
-                                                        "height": "400px",
-                                                        "display": "flex",
-                                                        "flexDirection": "column",
-                                                        "justifyContent": "center",
-                                                    },
-                                                ),
-                                            ],
-                                            style={"backgroundColor": "#2a2a2a"},
-                                        ),
-                                    ],
-                                    style={"height": "100%"},
-                                ),
-                            ],
-                            width=8,
-                        ),
-                    ],
-                ),
-            ],
-            fluid=True,
-        ),
-    ],
-    style={"backgroundColor": "#00003B", "minHeight": "100vh", "padding": "20px"},
-)
-
-
-# Timer callback
-@app.callback(Output("timer-display", "children"), Input("timer-display", "id"))
-def update_timer(value):
-    # In a real application, you would implement proper timer logic here
-    return "30"
-
+app.layout = create_game_layout("/home/vandy/work/datavis/wwtbm/src/assets/WWTBAMUS2020Logo.webp")
 
 if __name__ == "__main__":
     app.run_server(debug=True)
