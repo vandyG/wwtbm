@@ -5,94 +5,13 @@ from dash import Dash, html
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY], assets_folder="assets")
 
-# Simplified CSS with consistent styling
-CUSTOM_STYLES = """
-.hex-shape {
-    background-color: #000066;
-    position: relative;
-    color: white;
-    display: flex;
-    align-items: center;
-    clip-path: polygon(30px 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 30px 100%, 0% 50%);
-}
 
-.hex-shape::after {
-    content: '';
-    position: absolute;
-    inset: 2px;
-    background: inherit;
-    clip-path: polygon(30px 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 30px 100%, 0% 50%);
-    z-index: 1;
-}
-
-.hex-shape::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: #4169E1;
-    clip-path: polygon(30px 0%, calc(100% - 30px) 0%, 100% 50%, calc(100% - 30px) 100%, 30px 100%, 0% 50%);
-}
-
-.hex-shape:hover {
-    background-color: #000099;
-    cursor: pointer;
-}
-
-.hex-shape span {
-    position: relative;
-    z-index: 2;
-    font-size: 18px;
-}
-
-.option-box { 
-    padding: 15px 25px;
-    height: 60px;
-    margin: 10px 0;
-}
-
-.question-box {
-    padding: 20px 30px;
-    min-height: 80px;
-    margin: 20px 0;
-    justify-content: center;
-}
-
-.hex-button {
-    width: 100%; /* Make buttons flexible */
-    max-width: 250px; /* Set a maximum width */
-    min-height: 80px;
-    border: none;
-    padding: 0;
-    justify-content: center;
-}
-
-.hex-button span {
-    font-weight: 500;
-}
-
-/* Media query for smaller screens */
-@media (max-width: 768px) {
-    .controls-container {
-        flex-direction: column !important; /* Force column layout */
-        align-items: center !important; /* Center buttons vertically */
-    }
-
-    .hex-button {
-        width: 100%; /* Full width when stacked */
-        max-width: 100%; /* Allow buttons to take full width */
-    }
-}
-"""
-
-
-def create_game_layout(image_path):
-    encoded_image = base64.b64encode(open(image_path, "rb").read()).decode()
-
+def create_game_layout():
     return html.Div(
         [
             # Logo
             html.Div(
-                html.Img(src=f"data:image/svg;base64,{encoded_image}", style={"height": "20%", "width": "20%"}),
+                html.Img(src=app.get_asset_url("WWTBAMUS2020Logo.webp"), style={"height": "20%", "width": "20%"}),
                 style={"textAlign": "center"},
             ),
             # Main container
@@ -105,8 +24,8 @@ def create_game_layout(image_path):
                                 [
                                     html.Div(
                                         html.Span("What is the capital city of France?"),
-                                        className="hex-shape question-box",
-                                        style={"fontSize": "24px", "textAlign": "center"},
+                                        className="hex-shape question-box mt-4",
+                                        style={"fontSize": "30px", "textAlign": "center"},
                                     ),
                                     # Options grid
                                     html.Div(
@@ -136,7 +55,7 @@ def create_game_layout(image_path):
                                                 ],
                                             ),
                                         ],
-                                        style={"marginTop": "20px"},
+                                        style={"marginTop": "20px", "fontSize": "24px"},
                                     ),
                                 ],
                             ),
@@ -148,7 +67,7 @@ def create_game_layout(image_path):
                             # Timer Column
                             dbc.Col(
                                 [
-                                    html.Div(html.Span("Timer"), className="hex-shape question-box mb-0"),
+                                    html.Div(html.Span("Timer"), className="hex-shape question-box mb-0 mt-4"),
                                     dbc.Card(
                                         [
                                             dbc.CardBody(
@@ -178,7 +97,7 @@ def create_game_layout(image_path):
                                             ("Next", "next-question"),
                                         ]
                                     ],
-                                    className="controls-container mb-0 mt-3",
+                                    className="controls-container mt-4",
                                     style={
                                         "display": "flex",
                                         "justifyContent": "center",
@@ -233,28 +152,7 @@ def create_game_layout(image_path):
     )
 
 
-app.index_string = f"""
-<!DOCTYPE html>
-<html>
-    <head>
-        {{%metas%}}
-        <title>{{%title%}}</title>
-        {{%favicon%}}
-        {{%css%}}
-        <style>{CUSTOM_STYLES}</style>
-    </head>
-    <body>
-        {{%app_entry%}}
-        <footer>
-            {{%config%}}
-            {{%scripts%}}
-            {{%renderer%}}
-        </footer>
-    </body>
-</html>
-"""
-
-app.layout = create_game_layout("/home/vandy/work/datavis/wwtbm/src/assets/WWTBAMUS2020Logo.webp")
+app.layout = create_game_layout()
 
 if __name__ == "__main__":
     app.run_server(debug=True)
