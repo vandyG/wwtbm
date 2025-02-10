@@ -17,7 +17,7 @@ import argparse
 import sys
 from typing import Any
 
-from wwtbm import debug
+from wwtbm import app, debug
 
 
 class _DebugInfo(argparse.Action):
@@ -38,6 +38,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="wwtbm")
     parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {debug.get_version()}")
     parser.add_argument("--debug-info", action=_DebugInfo, help="Print debug information.")
+    parser.add_argument("--debug", action="store_true", help="Run server in debug mode.")
     return parser
 
 
@@ -54,5 +55,6 @@ def main(args: list[str] | None = None) -> int:
     """
     parser = get_parser()
     opts = parser.parse_args(args=args)
-    print(opts)
+    # print(opts)
+    app.app.run_server(debug=opts.debug)
     return 0
