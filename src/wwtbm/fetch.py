@@ -5,6 +5,19 @@ from pathlib import Path
 import pandas as pd
 
 
+def read_excel_file(file_path: Path, sheet: str) -> pd.DataFrame:
+    """Read Excel file and return DataFrame.
+
+    Args:
+        file_path (Path): Input file path.
+        sheet (str): Sheet name.
+
+    Returns:
+        pd.DataFrame: Input df.
+    """
+    return pd.read_excel(file_path, sheet_name=sheet)
+
+
 def get_answers_power_automate_hook(file_path: Path, sheet: str, trigger_path: Path) -> pd.DataFrame:
     """Fetches data from input excel.
 
@@ -28,15 +41,15 @@ def get_answers_power_automate_hook(file_path: Path, sheet: str, trigger_path: P
     while True:
         if not Path(trigger_path).exists():
             print("Reading Excel file...")
-            return pd.read_excel(file_path, sheet_name=sheet)
+            return read_excel_file(file_path, sheet_name=sheet)
 
 
 def main():
     """Entry point."""
     from os import environ
 
-    file_path = environ["ANSWERS_FILE"]
-    trigger_path = environ["TRIGGER_FILE"]
+    file_path = Path(environ["ANSWERS_FILE"])
+    trigger_path = Path(environ["TRIGGER_FILE"])
     sheet = environ["ANSWER_SHEET"]
 
     df = get_answers_power_automate_hook(
