@@ -1,6 +1,9 @@
 import dash_bootstrap_components as dbc
 from dash import Dash, Input, Output, no_update, dcc, html, State, callback_context
-
+import pandas as pd
+import plotly.graph_objects as go
+from fetch import get_question_data,get_answer_data
+from visualisation import get_user_performance_graph,get_answer_distribution_graph
 
 def create_game_layout(app: Dash):
     return html.Div(
@@ -85,37 +88,26 @@ def create_game_layout(app: Dash):
                             dbc.Card(
                                 [
                                     dbc.CardHeader(
-                                        "Question Statistics",
+                                        "Answer Distribution",
                                         style={"backgroundColor": "#1a1a1a", "color": "#FFD700"},
                                     ),
                                     dbc.CardBody(
                                         html.Div(
-                                            [
-                                                html.H4(
-                                                    "Visualization Area",
-                                                    style={"color": "#FFD700", "textAlign": "center"},
-                                                ),
-                                                html.P(
-                                                    "Statistical visualizations for current question will appear here.",
-                                                    style={"color": "#ffffff", "textAlign": "center"},
-                                                ),
-                                            ],
                                             id="visualization-container",
                                             style={
                                                 "height": "400px",
-                                                "display": "flex",
-                                                "flexDirection": "column",
-                                                "justifyContent": "center",
+                                                "backgroundColor": "#2a2a2a",
                                             },
                                         ),
-                                        style={"backgroundColor": "#2a2a2a"},
                                     ),
                                 ],
                             ),
                         ),
                     ),
-                    dcc.Store(id="current-question-index", data=0),
-                    dcc.Store(id="time-up", data=False),  # New store for tracking timer state
+                    dcc.Store(id="current-question-index", data=1),
+                    dcc.Store(id="time-up", data=False),
+                    dcc.Store(id="question-data", data=None),
+                    dcc.Store(id="answer-data", data=None),
                     dcc.Interval(
                         id="timer-interval",
                         interval=1000,
@@ -136,60 +128,126 @@ def create_game_layout(app: Dash):
         style={"backgroundColor": "#00003B", "minHeight": "100vh", "padding": "20px"},
     )
 
-
 def run_app(debug=False):
     app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY], assets_folder="assets")
     app.layout = create_game_layout(app=app)
-
-    # Sample questions and options with correct answers
-    questions = [
-        "What is the capital city of France?",
-        "Which planet is known as the Red Planet?",
-        "What is the largest mammal on Earth?",
+    df_questions = get_question_data()
+    @app.callback(
+    [
+        Output("question-data", "data"),
+        Output("answer-data", "data"),
+        Output("timer-display", "children"),
+        Output("bg-audio", "loop"),
+        Output("bg-audio", "src"),
+        Output("time-up", "data"),
+    ],
+    [
+        Input("timer-interval", "n_intervals"),
     ]
-    options = {
-        0: [("A", "Paris"), ("B", "London"), ("C", "Berlin"), ("D", "Madrid")],
-        1: [("A", "Mars"), ("B", "Venus"), ("C", "Jupiter"), ("D", "Saturn")],
-        2: [("A", "Blue Whale"), ("B", "African Elephant"), ("C", "Giraffe"), ("D", "Hippopotamus")],
-    }
-    correct_answers = {0: "A", 1: "A", 2: "A"}  # Stores the correct option letter for each question
+)
+    def update_data_and_timer(n_intervals):
+        # Initial Load: Fetch Questions
+        if n_intervals == 0:
+            print("reading question")
+            return (
+                df_questions.to_dict("records"),
+                no_update,
+                html.H2("30", className="text-warning"),  # Timer starts at 30
+                no_update,
+                no_update,
+                False,
+            )
 
-    # Callback to update the timer and trigger answer reveal
+        # Timer Countdown
+        time_left = 30 - (n_intervals % 30)
+
+        # Timer runs out
+        if time_left == 30 and n_intervals != 0:
+            print("reading answers")
+            df_answers = get_answer_data()
+            return (
+                no_update,
+                df_answers.to_dict("records"),  # Update answer data
+                html.H2("Time's up!", className="text-danger"),  # Timer display update
+                False,  # Stop looping background audio
+                app.get_asset_url("226000-9027b0d6-7a4f-4ee7-946f-6d011370681f.mp3"),  # Change audio
+                True,  # Set time-up flag to True
+            )
+        # Default case: Just update timer
+        return (
+            no_update,
+            no_update,
+            html.H2(f"{time_left}", className="text-warning"),
+            no_update,
+            no_update,
+            False,
+        )
     @app.callback(
         [
-            Output("timer-display", "children"),
-            Output("bg-audio", "loop"),
-            Output("bg-audio", "src"),
-            Output("time-up", "data"),
+            Output("current-question-index", "data"),
+            Output("timer-interval", "n_intervals"),
         ],
-        Input("timer-interval", "n_intervals"),
+        [
+            Input("next-question-btn", "n_clicks"),
+            Input("prev-question-btn", "n_clicks"),
+            Input("question-data", "data"),
+        ],
+        [State("current-question-index", "data")],
+        prevent_initial_call=True, 
+        
+        
+        
     )
-    def update_timer(n_intervals):
-        time_left = 30 - (n_intervals % 30)
-        if time_left == 30 and n_intervals != 0:
+    def navigate_question(next_clicks, prev_clicks,question_data,current_index):
+
+        max_index = len(question_data)
+        ctx = callback_context
+        triggered_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
+        if not question_data:
+            return no_update, no_update
+        
+        if triggered_id == "next-question-btn" and current_index < max_index:
+            print("CLICKED NEXT and updated timer")
             return (
-                html.H2("Time's up!", className="text-danger"),
-                False,
-                app.get_asset_url("226000-9027b0d6-7a4f-4ee7-946f-6d011370681f.mp3"),
-                True,
+                current_index + 1,
+                0,  # Reset n_intervals
             )
-        return html.H2(f"{time_left}", className="text-warning"), no_update, no_update, False
 
-    # Callback to update question and options
+        # Handle Previous Question Click
+        if triggered_id == "prev-question-btn" and current_index > 1:
+            print("CLICKED prev")
+            return (
+                current_index - 1,
+                no_update,
+            )
+
     @app.callback(
-        [Output("question-text", "children"), Output("options-grid", "children")],
+        [Output("question-text", "children"), Output("options-grid", "children"), Output("visualization-container", "children")],
         [Input("current-question-index", "data"), Input("time-up", "data")],
+        [State("question-data", "data"), State("answer-data", "data")]
     )
-    def update_question_and_options(current_index, time_up):
-        # Get current question and options
-        question = questions[current_index]
-        current_options = options[current_index]
-        correct_answer = correct_answers[current_index]
+    def update_question_and_options(current_index, time_up, question_data, answer_data):
+        if not question_data:
+            return no_update, no_update, no_update
 
+        df_questions = pd.DataFrame(question_data).reset_index(drop=True).set_index("Number")
+
+        current_question = df_questions.loc[current_index]
+
+        options = [
+            ("1", current_question["Option1"]),
+            ("2", current_question["Option2"]),
+            ("3", current_question["Option3"]),
+            ("4", current_question["Option4"]),
+        ]
+        
         def create_option_div(option_letter, option_text):
-            # Determine if this option should be highlighted
-            background_color = "#008000" if time_up and option_letter == correct_answer else "inherit"
 
+            if bool(time_up) and int(option_letter) == current_question["Answer"]:
+                print("205")
+            background_color = "#008000" if time_up and int(option_letter) == current_question["Answer"] else "inherit"
+            
+            
             return html.Div(
                 html.Span(f"{option_letter}: {option_text}"),
                 className="hex-shape option-box",
@@ -198,58 +256,30 @@ def run_app(debug=False):
 
         # Create options grid
         options_grid = [
-            # First row of options (A and B)
-            dbc.Row(
-                [
-                    dbc.Col(
-                        create_option_div(current_options[0][0], current_options[0][1]),
-                        width=6,
-                    ),
-                    dbc.Col(
-                        create_option_div(current_options[1][0], current_options[1][1]),
-                        width=6,
-                    ),
-                ],
-            ),
-            # Second row of options (C and D)
-            dbc.Row(
-                [
-                    dbc.Col(
-                        create_option_div(current_options[2][0], current_options[2][1]),
-                        width=6,
-                    ),
-                    dbc.Col(
-                        create_option_div(current_options[3][0], current_options[3][1]),
-                        width=6,
-                    ),
-                ],
-            ),
+            dbc.Row([
+                dbc.Col(create_option_div(options[0][0], options[0][1]), width=6),
+                dbc.Col(create_option_div(options[1][0], options[1][1]), width=6),
+            ]),
+            dbc.Row([
+                dbc.Col(create_option_div(options[2][0], options[2][1]), width=6),
+                dbc.Col(create_option_div(options[3][0], options[3][1]), width=6),
+            ]),
         ]
 
-        return question, options_grid
+        # Create visualization when time is up
 
-        # Callback to handle next/previous question navigation
+        visualization = []
+        if answer_data:
 
-    @app.callback(
-        Output("current-question-index", "data"),
-        Input("next-question-btn", "n_clicks"),
-        Input("prev-question-btn", "n_clicks"),
-        State("current-question-index", "data"),
-        prevent_initial_call=True,
-    )
-    def navigate_questions(next_clicks, prev_clicks, current_question_index):
-        ctx = callback_context
-        if not ctx.triggered:
-            return current_question_index
-        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-        if button_id == "next-question-btn" and current_question_index < len(questions) - 1:
-            return current_question_index + 1
-        if button_id == "prev-question-btn" and current_question_index > 0:
-            return current_question_index - 1
-        return current_question_index
+            df_answers = pd.DataFrame(answer_data)
+
+            fig = get_user_performance_graph(df_answers, 5)
+            visualization = [dcc.Graph(figure=fig, style={"height": "100%"})]
+
+        return current_question["Question"], options_grid, visualization
+
 
     app.run_server(debug=debug)
-
 
 if __name__ == "__main__":
     run_app(debug=True)

@@ -68,55 +68,46 @@ def filter_first_occurrence(df):
 
     return filtered_df
 
-def get_data():
+def get_question_data():
+ 
+    from os import environ
+
+    file_path = Path(environ["ANSWERS_FILE"])
+    question_sheet = environ["QUESTION_SHEET"]
+
+    df_question = read_excel_file(
+        file_path=file_path,
+        sheet=question_sheet,
+    )
+    # df_question = df_question.reset_index(drop=True).set_index("Number")
+
+    return df_question
+    
+def get_answer_data():
  
     from os import environ
 
     file_path = Path(environ["ANSWERS_FILE"])
     trigger_path = Path(environ["TRIGGER_FILE"])
     answer_sheet = environ["ANSWER_SHEET"]
-    question_sheet = environ["QUESTION_SHEET"]
 
     df_answer_unfiltered = get_answers_power_automate_hook(
         file_path=file_path,
         sheet=answer_sheet,
         trigger_path=trigger_path,
     )
-    df_question = read_excel_file(
-        file_path=file_path,
-        sheet=question_sheet,
-    )
-    df_question = df_question.reset_index(drop=True).set_index("Number")
+
     df_answer = filter_first_occurrence(df_answer_unfiltered)
     
-    return df_question,df_answer
-    
-    
+    return df_answer
+
 def main():
- 
-    from os import environ
 
-    file_path = Path(environ["ANSWERS_FILE"])
-    trigger_path = Path(environ["TRIGGER_FILE"])
-    answer_sheet = environ["ANSWER_SHEET"]
-    question_sheet = environ["QUESTION_SHEET"]
-
-    df_answer_unfiltered = get_answers_power_automate_hook(
-        file_path=file_path,
-        sheet=answer_sheet,
-        trigger_path=trigger_path,
-    )
-    df_question = read_excel_file(
-        file_path=file_path,
-        sheet=question_sheet,
-    )
-    df_question = df_question.reset_index(drop=True).set_index("Number")
-    df_answer = filter_first_occurrence(df_answer_unfiltered)
-    print(df_question)
-    print(df_answer_unfiltered)
-    
+    df_question = get_question_data()
+    df_answer = get_answer_data()    
     return df_question,df_answer
 
 if __name__ == "__main__":
     main()
+    
     
