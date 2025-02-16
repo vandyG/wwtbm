@@ -7,7 +7,13 @@ def create_game_layout(app: Dash):
         [
             # Logo
             html.Div(
-                html.Img(src=app.get_asset_url("WWTBAMUS2020Logo.webp"), style={"height": "20%", "width": "20%"}),
+                html.Img(
+                    src=app.get_asset_url("WWTBAMUS2020Logo.webp"),
+                    style={
+                        "height": "20%",
+                        "width": "20%",
+                    },
+                ),
                 style={"textAlign": "center"},
             ),
             # Main container
@@ -17,41 +23,22 @@ def create_game_layout(app: Dash):
                     dbc.Row(
                         dbc.Col(
                             [
+                                # Question component
                                 html.Div(
-                                    html.Span("What is the capital city of France?"),
+                                    html.Span(id="question-text"),
                                     className="hex-shape question-box mt-4",
-                                    style={"fontSize": "30px", "textAlign": "center"},
+                                    style={
+                                        "fontSize": "30px",
+                                        "textAlign": "center",
+                                    },
                                 ),
                                 # Options grid
                                 html.Div(
-                                    [
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    html.Div(
-                                                        html.Span(f"{opt[0]}: {opt[1]}"),
-                                                        className="hex-shape option-box",
-                                                    ),
-                                                    width=6,
-                                                )
-                                                for opt in [("A", "Paris"), ("B", "London")]
-                                            ],
-                                        ),
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    html.Div(
-                                                        html.Span(f"{opt[0]}: {opt[1]}"),
-                                                        className="hex-shape option-box",
-                                                    ),
-                                                    width=6,
-                                                )
-                                                for opt in [("C", "Berlin"), ("D", "Madrid")]
-                                            ],
-                                        ),
-                                    ],
-                                    id="optoins-grid",
-                                    style={"marginTop": "20px", "fontSize": "24px"},
+                                    id="options-grid",
+                                    style={
+                                        "marginTop": "20px",
+                                        "fontSize": "24px",
+                                    },
                                 ),
                             ],
                         ),
@@ -62,7 +49,10 @@ def create_game_layout(app: Dash):
                             # Timer Column
                             dbc.Col(
                                 [
-                                    html.Div(html.Span("Timer"), className="hex-shape question-box mb-0 mt-4"),
+                                    html.Div(
+                                        html.Span("Timer"),
+                                        className="hex-shape question-box mb-0 mt-4",
+                                    ),
                                     dbc.Card(
                                         [
                                             dbc.CardBody(
@@ -86,7 +76,11 @@ def create_game_layout(app: Dash):
                             dbc.Col(
                                 html.Div(
                                     [
-                                        html.Button(html.Span(text), className="hex-shape hex-button", id=f"{id_}-btn")
+                                        html.Button(
+                                            html.Span(text),
+                                            className="hex-shape hex-button",
+                                            id=f"{id_}-btn",
+                                        )
                                         for text, id_ in [
                                             ("Previous", "prev-question"),
                                             ("Next", "next-question"),
@@ -99,10 +93,13 @@ def create_game_layout(app: Dash):
                                         "gap": "20px",
                                     },
                                 ),
-                                width=6,  # Ensure the column has a width
+                                width=6,
                             ),
                         ],
-                        style={"display": "flex", "flexWrap": "wrap"},  # Allow wrapping on smaller screens
+                        style={
+                            "display": "flex",
+                            "flexWrap": "wrap",
+                        },
                     ),
                     # Statistics Section
                     dbc.Row(
@@ -111,14 +108,20 @@ def create_game_layout(app: Dash):
                                 [
                                     dbc.CardHeader(
                                         "Question Statistics",
-                                        style={"backgroundColor": "#1a1a1a", "color": "#FFD700"},
+                                        style={
+                                            "backgroundColor": "#1a1a1a",
+                                            "color": "#FFD700",
+                                        },
                                     ),
                                     dbc.CardBody(
                                         html.Div(
                                             [
                                                 html.H4(
                                                     "Visualization Area",
-                                                    style={"color": "#FFD700", "textAlign": "center"},
+                                                    style={
+                                                        "color": "#FFD700",
+                                                        "textAlign": "center",
+                                                    },
                                                 ),
                                                 html.P(
                                                     "Statistical visualizations for current question will appear here.",
@@ -157,17 +160,33 @@ def create_game_layout(app: Dash):
                 id="bg-audio",
             ),
         ],
-        style={"backgroundColor": "#00003B", "minHeight": "100vh", "padding": "20px"},
+        style={
+            "backgroundColor": "#00003B",
+            "minHeight": "100vh",
+            "padding": "20px",
+        },
     )
 
 
 def run_app(debug=False):
-    app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY], assets_folder="assets")
+    app = Dash(
+        __name__,
+        external_stylesheets=[dbc.themes.DARKLY],
+        assets_folder="assets",
+    )
     app.layout = create_game_layout(app=app)
 
-    # TODO: Fetch Questions.
-    questions = ["What is the capital city of France?"]
-    options = {0: ["Paris", "London", "Madrid", "Berlin"]}
+    # Sample questions and options
+    questions = [
+        "What is the capital city of France?",
+        "Which planet is known as the Red Planet?",
+        "What is the largest mammal on Earth?",
+    ]
+    options = {
+        0: [("A", "Paris"), ("B", "London"), ("C", "Berlin"), ("D", "Madrid")],
+        1: [("A", "Mars"), ("B", "Venus"), ("C", "Jupiter"), ("D", "Saturn")],
+        2: [("A", "Blue Whale"), ("B", "African Elephant"), ("C", "Giraffe"), ("D", "Hippopotamus")],
+    }
 
     # Callback to update the timer
     @app.callback(
@@ -177,23 +196,68 @@ def run_app(debug=False):
         Input("timer-interval", "n_intervals"),
     )
     def update_timer(n_intervals):
-        time_left = 30 - (n_intervals % 30)  # 30-second timer for each question
+        time_left = 30 - (n_intervals % 30)
         if time_left == 30 and n_intervals != 0:
             return (
-                (html.H2("Time's up!", className="text-danger"),),
+                html.H2("Time's up!", className="text-danger"),
                 False,
                 app.get_asset_url("226000-9027b0d6-7a4f-4ee7-946f-6d011370681f.mp3"),
             )
         return html.H2(f"{time_left}", className="text-warning"), no_update, no_update
 
-    # @app.callback(Output)
-    # def update_question_section(current_question_index):
-    #     question_data = questions[current_question_index]
-    #     return [
-    #         html.H4(f"Question {current_question_index + 1}", className="text-warning"),
-    #         html.P(question_data["question"], className="lead"),
-    #         dbc.ListGroup([dbc.ListGroupItem(option, className="mb-2") for option in question_data["options"]]),
-    #     ]
+    # Callback to update question and options
+    @app.callback(
+        [Output("question-text", "children"), Output("options-grid", "children")],
+        Input("current-question-index", "data"),
+    )
+    def update_question_and_options(current_index):
+        # Get current question and options
+        question = questions[current_index]
+        current_options = options[current_index]
+
+        # Create options grid
+        options_grid = [
+            # First row of options (A and B)
+            dbc.Row(
+                [
+                    dbc.Col(
+                        html.Div(
+                            html.Span(f"{current_options[0][0]}: {current_options[0][1]}"),
+                            className="hex-shape option-box",
+                        ),
+                        width=6,
+                    ),
+                    dbc.Col(
+                        html.Div(
+                            html.Span(f"{current_options[1][0]}: {current_options[1][1]}"),
+                            className="hex-shape option-box",
+                        ),
+                        width=6,
+                    ),
+                ],
+            ),
+            # Second row of options (C and D)
+            dbc.Row(
+                [
+                    dbc.Col(
+                        html.Div(
+                            html.Span(f"{current_options[2][0]}: {current_options[2][1]}"),
+                            className="hex-shape option-box",
+                        ),
+                        width=6,
+                    ),
+                    dbc.Col(
+                        html.Div(
+                            html.Span(f"{current_options[3][0]}: {current_options[3][1]}"),
+                            className="hex-shape option-box",
+                        ),
+                        width=6,
+                    ),
+                ],
+            ),
+        ]
+
+        return question, options_grid
 
     app.run_server(debug=debug)
 
