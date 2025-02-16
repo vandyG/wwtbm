@@ -1,5 +1,5 @@
 import dash_bootstrap_components as dbc
-from dash import Dash, Input, Output, no_update, dcc, html
+from dash import Dash, Input, Output, no_update, dcc, html, State, callback_context
 
 
 def create_game_layout(app: Dash):
@@ -7,13 +7,7 @@ def create_game_layout(app: Dash):
         [
             # Logo
             html.Div(
-                html.Img(
-                    src=app.get_asset_url("WWTBAMUS2020Logo.webp"),
-                    style={
-                        "height": "20%",
-                        "width": "20%",
-                    },
-                ),
+                html.Img(src=app.get_asset_url("WWTBAMUS2020Logo.webp"), style={"height": "20%", "width": "20%"}),
                 style={"textAlign": "center"},
             ),
             # Main container
@@ -27,18 +21,12 @@ def create_game_layout(app: Dash):
                                 html.Div(
                                     html.Span(id="question-text"),
                                     className="hex-shape question-box mt-4",
-                                    style={
-                                        "fontSize": "30px",
-                                        "textAlign": "center",
-                                    },
+                                    style={"fontSize": "30px", "textAlign": "center"},
                                 ),
                                 # Options grid
                                 html.Div(
                                     id="options-grid",
-                                    style={
-                                        "marginTop": "20px",
-                                        "fontSize": "24px",
-                                    },
+                                    style={"marginTop": "20px", "fontSize": "24px"},
                                 ),
                             ],
                         ),
@@ -49,10 +37,7 @@ def create_game_layout(app: Dash):
                             # Timer Column
                             dbc.Col(
                                 [
-                                    html.Div(
-                                        html.Span("Timer"),
-                                        className="hex-shape question-box mb-0 mt-4",
-                                    ),
+                                    html.Div(html.Span("Timer"), className="hex-shape question-box mb-0 mt-4"),
                                     dbc.Card(
                                         [
                                             dbc.CardBody(
@@ -76,11 +61,7 @@ def create_game_layout(app: Dash):
                             dbc.Col(
                                 html.Div(
                                     [
-                                        html.Button(
-                                            html.Span(text),
-                                            className="hex-shape hex-button",
-                                            id=f"{id_}-btn",
-                                        )
+                                        html.Button(html.Span(text), className="hex-shape hex-button", id=f"{id_}-btn")
                                         for text, id_ in [
                                             ("Previous", "prev-question"),
                                             ("Next", "next-question"),
@@ -96,10 +77,7 @@ def create_game_layout(app: Dash):
                                 width=6,
                             ),
                         ],
-                        style={
-                            "display": "flex",
-                            "flexWrap": "wrap",
-                        },
+                        style={"display": "flex", "flexWrap": "wrap"},
                     ),
                     # Statistics Section
                     dbc.Row(
@@ -108,20 +86,14 @@ def create_game_layout(app: Dash):
                                 [
                                     dbc.CardHeader(
                                         "Question Statistics",
-                                        style={
-                                            "backgroundColor": "#1a1a1a",
-                                            "color": "#FFD700",
-                                        },
+                                        style={"backgroundColor": "#1a1a1a", "color": "#FFD700"},
                                     ),
                                     dbc.CardBody(
                                         html.Div(
                                             [
                                                 html.H4(
                                                     "Visualization Area",
-                                                    style={
-                                                        "color": "#FFD700",
-                                                        "textAlign": "center",
-                                                    },
+                                                    style={"color": "#FFD700", "textAlign": "center"},
                                                 ),
                                                 html.P(
                                                     "Statistical visualizations for current question will appear here.",
@@ -143,6 +115,7 @@ def create_game_layout(app: Dash):
                         ),
                     ),
                     dcc.Store(id="current-question-index", data=0),
+                    dcc.Store(id="time-up", data=False),  # New store for tracking timer state
                     dcc.Interval(
                         id="timer-interval",
                         interval=1000,
@@ -160,23 +133,15 @@ def create_game_layout(app: Dash):
                 id="bg-audio",
             ),
         ],
-        style={
-            "backgroundColor": "#00003B",
-            "minHeight": "100vh",
-            "padding": "20px",
-        },
+        style={"backgroundColor": "#00003B", "minHeight": "100vh", "padding": "20px"},
     )
 
 
 def run_app(debug=False):
-    app = Dash(
-        __name__,
-        external_stylesheets=[dbc.themes.DARKLY],
-        assets_folder="assets",
-    )
+    app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY], assets_folder="assets")
     app.layout = create_game_layout(app=app)
 
-    # Sample questions and options
+    # Sample questions and options with correct answers
     questions = [
         "What is the capital city of France?",
         "Which planet is known as the Red Planet?",
@@ -187,12 +152,16 @@ def run_app(debug=False):
         1: [("A", "Mars"), ("B", "Venus"), ("C", "Jupiter"), ("D", "Saturn")],
         2: [("A", "Blue Whale"), ("B", "African Elephant"), ("C", "Giraffe"), ("D", "Hippopotamus")],
     }
+    correct_answers = {0: "A", 1: "A", 2: "A"}  # Stores the correct option letter for each question
 
-    # Callback to update the timer
+    # Callback to update the timer and trigger answer reveal
     @app.callback(
-        Output("timer-display", "children"),
-        Output("bg-audio", "loop"),
-        Output("bg-audio", "src"),
+        [
+            Output("timer-display", "children"),
+            Output("bg-audio", "loop"),
+            Output("bg-audio", "src"),
+            Output("time-up", "data"),
+        ],
         Input("timer-interval", "n_intervals"),
     )
     def update_timer(n_intervals):
@@ -202,18 +171,30 @@ def run_app(debug=False):
                 html.H2("Time's up!", className="text-danger"),
                 False,
                 app.get_asset_url("226000-9027b0d6-7a4f-4ee7-946f-6d011370681f.mp3"),
+                True,
             )
-        return html.H2(f"{time_left}", className="text-warning"), no_update, no_update
+        return html.H2(f"{time_left}", className="text-warning"), no_update, no_update, False
 
     # Callback to update question and options
     @app.callback(
         [Output("question-text", "children"), Output("options-grid", "children")],
-        Input("current-question-index", "data"),
+        [Input("current-question-index", "data"), Input("time-up", "data")],
     )
-    def update_question_and_options(current_index):
+    def update_question_and_options(current_index, time_up):
         # Get current question and options
         question = questions[current_index]
         current_options = options[current_index]
+        correct_answer = correct_answers[current_index]
+
+        def create_option_div(option_letter, option_text):
+            # Determine if this option should be highlighted
+            background_color = "#008000" if time_up and option_letter == correct_answer else "inherit"
+
+            return html.Div(
+                html.Span(f"{option_letter}: {option_text}"),
+                className="hex-shape option-box",
+                style={"backgroundColor": background_color} if time_up else {},
+            )
 
         # Create options grid
         options_grid = [
@@ -221,17 +202,11 @@ def run_app(debug=False):
             dbc.Row(
                 [
                     dbc.Col(
-                        html.Div(
-                            html.Span(f"{current_options[0][0]}: {current_options[0][1]}"),
-                            className="hex-shape option-box",
-                        ),
+                        create_option_div(current_options[0][0], current_options[0][1]),
                         width=6,
                     ),
                     dbc.Col(
-                        html.Div(
-                            html.Span(f"{current_options[1][0]}: {current_options[1][1]}"),
-                            className="hex-shape option-box",
-                        ),
+                        create_option_div(current_options[1][0], current_options[1][1]),
                         width=6,
                     ),
                 ],
@@ -240,17 +215,11 @@ def run_app(debug=False):
             dbc.Row(
                 [
                     dbc.Col(
-                        html.Div(
-                            html.Span(f"{current_options[2][0]}: {current_options[2][1]}"),
-                            className="hex-shape option-box",
-                        ),
+                        create_option_div(current_options[2][0], current_options[2][1]),
                         width=6,
                     ),
                     dbc.Col(
-                        html.Div(
-                            html.Span(f"{current_options[3][0]}: {current_options[3][1]}"),
-                            className="hex-shape option-box",
-                        ),
+                        create_option_div(current_options[3][0], current_options[3][1]),
                         width=6,
                     ),
                 ],
@@ -258,6 +227,26 @@ def run_app(debug=False):
         ]
 
         return question, options_grid
+
+        # Callback to handle next/previous question navigation
+
+    @app.callback(
+        Output("current-question-index", "data"),
+        Input("next-question-btn", "n_clicks"),
+        Input("prev-question-btn", "n_clicks"),
+        State("current-question-index", "data"),
+        prevent_initial_call=True,
+    )
+    def navigate_questions(next_clicks, prev_clicks, current_question_index):
+        ctx = callback_context
+        if not ctx.triggered:
+            return current_question_index
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        if button_id == "next-question-btn" and current_question_index < len(questions) - 1:
+            return current_question_index + 1
+        if button_id == "prev-question-btn" and current_question_index > 0:
+            return current_question_index - 1
+        return current_question_index
 
     app.run_server(debug=debug)
 
