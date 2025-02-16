@@ -1,5 +1,5 @@
 import dash_bootstrap_components as dbc
-from dash import Dash, Input, Output, no_update, dcc, html
+from dash import Dash, Input, Output, no_update, dcc, html, State, callback_context
 
 
 def create_game_layout(app: Dash):
@@ -17,40 +17,15 @@ def create_game_layout(app: Dash):
                     dbc.Row(
                         dbc.Col(
                             [
+                                # Question component
                                 html.Div(
-                                    html.Span("What is the capital city of France?"),
+                                    html.Span(id="question-text"),
                                     className="hex-shape question-box mt-4",
                                     style={"fontSize": "30px", "textAlign": "center"},
                                 ),
                                 # Options grid
                                 html.Div(
-                                    [
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    html.Div(
-                                                        html.Span(f"{opt[0]}: {opt[1]}"),
-                                                        className="hex-shape option-box",
-                                                    ),
-                                                    width=6,
-                                                )
-                                                for opt in [("A", "Paris"), ("B", "London")]
-                                            ],
-                                        ),
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    html.Div(
-                                                        html.Span(f"{opt[0]}: {opt[1]}"),
-                                                        className="hex-shape option-box",
-                                                    ),
-                                                    width=6,
-                                                )
-                                                for opt in [("C", "Berlin"), ("D", "Madrid")]
-                                            ],
-                                        ),
-                                    ],
-                                    id="optoins-grid",
+                                    id="options-grid",
                                     style={"marginTop": "20px", "fontSize": "24px"},
                                 ),
                             ],
@@ -99,10 +74,10 @@ def create_game_layout(app: Dash):
                                         "gap": "20px",
                                     },
                                 ),
-                                width=6,  # Ensure the column has a width
+                                width=6,
                             ),
                         ],
-                        style={"display": "flex", "flexWrap": "wrap"},  # Allow wrapping on smaller screens
+                        style={"display": "flex", "flexWrap": "wrap"},
                     ),
                     # Statistics Section
                     dbc.Row(
@@ -140,6 +115,7 @@ def create_game_layout(app: Dash):
                         ),
                     ),
                     dcc.Store(id="current-question-index", data=0),
+                    dcc.Store(id="time-up", data=False),  # New store for tracking timer state
                     dcc.Interval(
                         id="timer-interval",
                         interval=1000,
@@ -165,35 +141,112 @@ def run_app(debug=False):
     app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY], assets_folder="assets")
     app.layout = create_game_layout(app=app)
 
-    # TODO: Fetch Questions.
-    questions = ["What is the capital city of France?"]
-    options = {0: ["Paris", "London", "Madrid", "Berlin"]}
+    # Sample questions and options with correct answers
+    questions = [
+        "What is the capital city of France?",
+        "Which planet is known as the Red Planet?",
+        "What is the largest mammal on Earth?",
+    ]
+    options = {
+        0: [("A", "Paris"), ("B", "London"), ("C", "Berlin"), ("D", "Madrid")],
+        1: [("A", "Mars"), ("B", "Venus"), ("C", "Jupiter"), ("D", "Saturn")],
+        2: [("A", "Blue Whale"), ("B", "African Elephant"), ("C", "Giraffe"), ("D", "Hippopotamus")],
+    }
+    correct_answers = {0: "A", 1: "A", 2: "A"}  # Stores the correct option letter for each question
 
-    # Callback to update the timer
+    # Callback to update the timer and trigger answer reveal
     @app.callback(
-        Output("timer-display", "children"),
-        Output("bg-audio", "loop"),
-        Output("bg-audio", "src"),
+        [
+            Output("timer-display", "children"),
+            Output("bg-audio", "loop"),
+            Output("bg-audio", "src"),
+            Output("time-up", "data"),
+        ],
         Input("timer-interval", "n_intervals"),
     )
     def update_timer(n_intervals):
-        time_left = 30 - (n_intervals % 30)  # 30-second timer for each question
+        time_left = 30 - (n_intervals % 30)
         if time_left == 30 and n_intervals != 0:
             return (
-                (html.H2("Time's up!", className="text-danger"),),
+                html.H2("Time's up!", className="text-danger"),
                 False,
                 app.get_asset_url("226000-9027b0d6-7a4f-4ee7-946f-6d011370681f.mp3"),
+                True,
             )
-        return html.H2(f"{time_left}", className="text-warning"), no_update, no_update
+        return html.H2(f"{time_left}", className="text-warning"), no_update, no_update, False
 
-    # @app.callback(Output)
-    # def update_question_section(current_question_index):
-    #     question_data = questions[current_question_index]
-    #     return [
-    #         html.H4(f"Question {current_question_index + 1}", className="text-warning"),
-    #         html.P(question_data["question"], className="lead"),
-    #         dbc.ListGroup([dbc.ListGroupItem(option, className="mb-2") for option in question_data["options"]]),
-    #     ]
+    # Callback to update question and options
+    @app.callback(
+        [Output("question-text", "children"), Output("options-grid", "children")],
+        [Input("current-question-index", "data"), Input("time-up", "data")],
+    )
+    def update_question_and_options(current_index, time_up):
+        # Get current question and options
+        question = questions[current_index]
+        current_options = options[current_index]
+        correct_answer = correct_answers[current_index]
+
+        def create_option_div(option_letter, option_text):
+            # Determine if this option should be highlighted
+            background_color = "#008000" if time_up and option_letter == correct_answer else "inherit"
+
+            return html.Div(
+                html.Span(f"{option_letter}: {option_text}"),
+                className="hex-shape option-box",
+                style={"backgroundColor": background_color} if time_up else {},
+            )
+
+        # Create options grid
+        options_grid = [
+            # First row of options (A and B)
+            dbc.Row(
+                [
+                    dbc.Col(
+                        create_option_div(current_options[0][0], current_options[0][1]),
+                        width=6,
+                    ),
+                    dbc.Col(
+                        create_option_div(current_options[1][0], current_options[1][1]),
+                        width=6,
+                    ),
+                ],
+            ),
+            # Second row of options (C and D)
+            dbc.Row(
+                [
+                    dbc.Col(
+                        create_option_div(current_options[2][0], current_options[2][1]),
+                        width=6,
+                    ),
+                    dbc.Col(
+                        create_option_div(current_options[3][0], current_options[3][1]),
+                        width=6,
+                    ),
+                ],
+            ),
+        ]
+
+        return question, options_grid
+
+        # Callback to handle next/previous question navigation
+
+    @app.callback(
+        Output("current-question-index", "data"),
+        Input("next-question-btn", "n_clicks"),
+        Input("prev-question-btn", "n_clicks"),
+        State("current-question-index", "data"),
+        prevent_initial_call=True,
+    )
+    def navigate_questions(next_clicks, prev_clicks, current_question_index):
+        ctx = callback_context
+        if not ctx.triggered:
+            return current_question_index
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        if button_id == "next-question-btn" and current_question_index < len(questions) - 1:
+            return current_question_index + 1
+        if button_id == "prev-question-btn" and current_question_index > 0:
+            return current_question_index - 1
+        return current_question_index
 
     app.run_server(debug=debug)
 
