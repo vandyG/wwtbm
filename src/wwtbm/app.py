@@ -1,12 +1,8 @@
-import base64
-
 import dash_bootstrap_components as dbc
-from dash import Dash, html
-
-app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY], assets_folder="assets")
+from dash import Dash, Input, Output, no_update, dcc, html
 
 
-def create_game_layout():
+def create_game_layout(app: Dash):
     return html.Div(
         [
             # Logo
@@ -20,45 +16,44 @@ def create_game_layout():
                     # Question and Options
                     dbc.Row(
                         dbc.Col(
-                            html.Div(
-                                [
-                                    html.Div(
-                                        html.Span("What is the capital city of France?"),
-                                        className="hex-shape question-box mt-4",
-                                        style={"fontSize": "30px", "textAlign": "center"},
-                                    ),
-                                    # Options grid
-                                    html.Div(
-                                        [
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
-                                                        html.Div(
-                                                            html.Span(f"{opt[0]}: {opt[1]}"),
-                                                            className="hex-shape option-box",
-                                                        ),
-                                                        width=6,
-                                                    )
-                                                    for opt in [("A", "Paris"), ("B", "London")]
-                                                ],
-                                            ),
-                                            dbc.Row(
-                                                [
-                                                    dbc.Col(
-                                                        html.Div(
-                                                            html.Span(f"{opt[0]}: {opt[1]}"),
-                                                            className="hex-shape option-box",
-                                                        ),
-                                                        width=6,
-                                                    )
-                                                    for opt in [("C", "Berlin"), ("D", "Madrid")]
-                                                ],
-                                            ),
-                                        ],
-                                        style={"marginTop": "20px", "fontSize": "24px"},
-                                    ),
-                                ],
-                            ),
+                            [
+                                html.Div(
+                                    html.Span("What is the capital city of France?"),
+                                    className="hex-shape question-box mt-4",
+                                    style={"fontSize": "30px", "textAlign": "center"},
+                                ),
+                                # Options grid
+                                html.Div(
+                                    [
+                                        dbc.Row(
+                                            [
+                                                dbc.Col(
+                                                    html.Div(
+                                                        html.Span(f"{opt[0]}: {opt[1]}"),
+                                                        className="hex-shape option-box",
+                                                    ),
+                                                    width=6,
+                                                )
+                                                for opt in [("A", "Paris"), ("B", "London")]
+                                            ],
+                                        ),
+                                        dbc.Row(
+                                            [
+                                                dbc.Col(
+                                                    html.Div(
+                                                        html.Span(f"{opt[0]}: {opt[1]}"),
+                                                        className="hex-shape option-box",
+                                                    ),
+                                                    width=6,
+                                                )
+                                                for opt in [("C", "Berlin"), ("D", "Madrid")]
+                                            ],
+                                        ),
+                                    ],
+                                    id="optoins-grid",
+                                    style={"marginTop": "20px", "fontSize": "24px"},
+                                ),
+                            ],
                         ),
                     ),
                     # Timer and Controls
@@ -144,15 +139,64 @@ def create_game_layout():
                             ),
                         ),
                     ),
+                    dcc.Store(id="current-question-index", data=0),
+                    dcc.Interval(
+                        id="timer-interval",
+                        interval=1000,
+                        n_intervals=0,
+                        max_intervals=30,
+                    ),
                 ],
                 fluid=True,
+            ),
+            html.Audio(
+                src=app.get_asset_url("226000-66fa2379-b277-4480-a2bc-feeb689bd09b.mp3"),
+                hidden=False,
+                autoPlay=True,
+                loop=True,
+                id="bg-audio",
             ),
         ],
         style={"backgroundColor": "#00003B", "minHeight": "100vh", "padding": "20px"},
     )
 
 
-app.layout = create_game_layout()
+def run_app(debug=False):
+    app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY], assets_folder="assets")
+    app.layout = create_game_layout(app=app)
+
+    # TODO: Fetch Questions.
+    questions = ["What is the capital city of France?"]
+    options = {0: ["Paris", "London", "Madrid", "Berlin"]}
+
+    # Callback to update the timer
+    @app.callback(
+        Output("timer-display", "children"),
+        Output("bg-audio", "loop"),
+        Output("bg-audio", "src"),
+        Input("timer-interval", "n_intervals"),
+    )
+    def update_timer(n_intervals):
+        time_left = 30 - (n_intervals % 30)  # 30-second timer for each question
+        if time_left == 30 and n_intervals != 0:
+            return (
+                (html.H2("Time's up!", className="text-danger"),),
+                False,
+                app.get_asset_url("226000-9027b0d6-7a4f-4ee7-946f-6d011370681f.mp3"),
+            )
+        return html.H2(f"{time_left}", className="text-warning"), no_update, no_update
+
+    # @app.callback(Output)
+    # def update_question_section(current_question_index):
+    #     question_data = questions[current_question_index]
+    #     return [
+    #         html.H4(f"Question {current_question_index + 1}", className="text-warning"),
+    #         html.P(question_data["question"], className="lead"),
+    #         dbc.ListGroup([dbc.ListGroupItem(option, className="mb-2") for option in question_data["options"]]),
+    #     ]
+
+    app.run_server(debug=debug)
+
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    run_app(debug=True)
