@@ -28,6 +28,7 @@ def create_game_layout(app: Dash):
                                         "fontSize": "30px",
                                         "textAlign": "center",
                                     },
+                                    id="question-section",
                                 ),
                                 # Options grid
                                 html.Div(
@@ -156,6 +157,36 @@ def create_game_layout(app: Dash):
                 autoPlay=True,
                 loop=True,
                 id="bg-audio",
+            ),
+            dbc.Modal(
+                [
+                    dbc.ModalHeader(dbc.ModalTitle("Header"), style={"border": "1px solid #4169E1"}),
+                    dbc.ModalBody(
+                        dbc.Tabs(
+                            style={
+                                "--bs-nav-tabs-border-color": "#4169E1",
+                                "--bs-nav-link-hover-color": "#4169E1",
+                                "--bs-nav-tabs-link-active-border-color": "#4169E1 #4169E1 transparent",
+                                "--bs-nav-tabs-link-active-bg": "#000066",
+                            },
+                            id="visualization-tabs",
+                        ),
+                    ),
+                ],
+                id="modal-question",
+                size="xl",
+                is_open=False,
+                content_style={"backgroundColor": "#000066", "border": "1px solid #4169E1"},
+            ),
+            dbc.Modal(
+                [
+                    dbc.ModalHeader(dbc.ModalTitle("Header"), style={"border": "1px solid #4169E1"}),
+                    dbc.ModalBody(id="visualisation-answer"),
+                ],
+                id="modal-answer",
+                size="xl",
+                is_open=False,
+                content_style={"backgroundColor": "#000066", "border": "1px solid #4169E1"},
             ),
         ],
         style={
@@ -286,6 +317,41 @@ def run_app(debug=False):
         if button_id == "prev-question-btn" and current_question_index > 0:
             return current_question_index - 1
         return current_question_index
+
+    # TODO: Add question visualisation here.
+    # Update the empty list with multiple tab components with tab data.
+    # Example:
+    # [
+    #     dbc.Tab(tab1_content, label="Tab 1"),
+    #     dbc.Tab(tab2_content, label="Tab 2"),
+    #     dbc.Tab(
+    #         "This tab's content is never seen", label="Tab 3", disabled=True
+    #     ),
+    # ]
+    # Replace tab component with dbc graphs.
+    @app.callback(
+        Output("modal-question", "is_open"),
+        Output("visualization-tabs", "children"),
+        Input("question-section", "n_clicks"),
+        State("modal-question", "is_open"),
+    )
+    def toggle_modal(n1, is_open):
+        if n1:
+            return (not is_open), []
+        return is_open, []
+
+    @app.callback(
+        Output("modal-answer", "is_open"),
+        Output("visualisation-answer", "children"),
+        Output("options-grid", "n_clicks"),
+        Input("options-grid", "n_clicks"),
+        Input("time-up", "data"),
+        State("modal-answer", "is_open"),
+    )
+    def toggle_modal_ans(n1, time_up, is_open):
+        if n1 and time_up:
+            return not is_open, [], no_update
+        return no_update, no_update, 0
 
     app.run_server(debug=debug)
 
