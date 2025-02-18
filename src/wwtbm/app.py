@@ -1,76 +1,224 @@
 import dash_bootstrap_components as dbc
 from dash import Dash, Input, Output, State, callback_context, dcc, html, no_update
+from dataclasses import dataclass
+from typing import List, Dict, Tuple
 
 
-def create_game_layout(app: Dash):
+@dataclass
+class GameTheme:
+    primary: str = "#000066"
+    secondary: str = "#4169E1"
+    background: str = "#00003B"
+    text: str = "#FFFFFF"
+    accent: str = "#FFD700"
+    success: str = "#008000"
+    card_bg: str = "#2a2a2a"
+    header_bg: str = "#1a1a1a"
+
+    def get_modal_style(self):
+        return {"backgroundColor": self.primary, "border": f"1px solid {self.secondary}"}
+
+    def get_card_style(self):
+        return {"backgroundColor": self.card_bg, "border": f"1px solid {self.secondary}", "color": self.text}
+
+    def get_header_style(self):
+        return {"backgroundColor": self.header_bg, "color": self.accent}
+
+
+class GameData:
+    def __init__(self):
+        self.questions = [
+            "What is the capital city of France?",
+            "Which planet is known as the Red Planet?",
+            "What is the largest mammal on Earth?",
+        ]
+        self.options = {
+            0: [("A", "Paris"), ("B", "London"), ("C", "Berlin"), ("D", "Madrid")],
+            1: [("A", "Mars"), ("B", "Venus"), ("C", "Jupiter"), ("D", "Saturn")],
+            2: [("A", "Blue Whale"), ("B", "African Elephant"), ("C", "Giraffe"), ("D", "Hippopotamus")],
+        }
+        self.correct_answers = {0: "A", 1: "A", 2: "A"}
+        self.leader_board = [
+            ("Balle ShavaShava", 1000000),
+            ("Balle ShavaShava", 1000000),
+            ("Balle ShavaShava", 1000000),
+            ("Balle ShavaShava", 1000000),
+            ("Balle ShavaShava", 1000000),
+        ]
+
+
+def create_option_div(
+    option_letter: str, option_text: str, correct_answer: str, time_up: bool, theme: GameTheme
+) -> html.Div:
+    style = {"backgroundColor": theme.success if time_up and option_letter == correct_answer else "inherit"}
+    return html.Div(
+        html.Span(f"{option_letter}: {option_text}"),
+        className="hex-shape option-box",
+        style=style if time_up else {},
+    )
+
+
+def create_options_grid(
+    options: List[Tuple[str, str]], correct_answer: str, time_up: bool, theme: GameTheme
+) -> List[dbc.Row]:
+    return [
+        dbc.Row(
+            [
+                dbc.Col(create_option_div(options[i][0], options[i][1], correct_answer, time_up, theme), width=6),
+                dbc.Col(
+                    create_option_div(options[i + 1][0], options[i + 1][1], correct_answer, time_up, theme), width=6
+                ),
+            ],
+        )
+        for i in (0, 2)
+    ]
+
+
+def create_modals(theme: GameTheme) -> List[dbc.Modal]:
+    modal_style = theme.get_modal_style()
+    header_style = {"border": f"1px solid {theme.secondary}"}
+
+    question_modal = dbc.Modal(
+        [
+            dbc.ModalHeader(dbc.ModalTitle("Header"), style=header_style),
+            dbc.ModalBody(
+                dbc.Tabs(
+                    style={
+                        "--bs-nav-tabs-border-color": theme.secondary,
+                        "--bs-nav-link-hover-color": theme.secondary,
+                        "--bs-nav-tabs-link-active-border-color": f"{theme.secondary} {theme.secondary} transparent",
+                        "--bs-nav-tabs-link-active-bg": theme.primary,
+                    },
+                    id="visualization-tabs",
+                )
+            ),
+        ],
+        id="modal-question",
+        size="xl",
+        is_open=False,
+        content_style=modal_style,
+    )
+
+    answer_modal = dbc.Modal(
+        [
+            dbc.ModalHeader(dbc.ModalTitle("Header"), style=header_style),
+            dbc.ModalBody(id="visualisation-answer"),
+        ],
+        id="modal-answer",
+        size="xl",
+        is_open=False,
+        content_style=modal_style,
+    )
+
+    return [question_modal, answer_modal]
+
+
+def create_leaderboard(leader_data: list[tuple[str, int]], theme: GameTheme) -> dbc.CardBody:
+    return dbc.Table(
+        html.Tbody(
+            [
+                html.Tr(
+                    [
+                        html.Td(
+                            f"{rank + 1}",
+                            className="text-center",
+                            colSpan=1,
+                        ),
+                        html.Td(
+                            f"{leader[0]}",
+                            className="text-center",
+                            colSpan=3,
+                        ),
+                        html.Td(
+                            f"${leader[1]}",
+                            className="text-center",
+                            colSpan=2,
+                        ),
+                    ],
+                )
+                for rank, leader in enumerate(leader_data)
+            ],
+        ),
+        bordered=False,
+        dark=True,
+        responsive=True,
+        style={
+            "color": theme.text,
+            "--bs-table-bg": theme.background,
+            "--bs-table-border-color": theme.secondary,
+        },
+    )
+
+
+def create_statistics_card(theme: GameTheme) -> dbc.Col:
+    return dbc.Col(
+        [
+            dbc.Card(
+                [
+                    dbc.CardBody(
+                        [],
+                        style={"backgroundColor": theme.card_bg},
+                    ),
+                ],
+                style=theme.get_card_style(),
+            ),
+        ],
+        width=8,
+    )
+
+
+def create_game_layout(app: Dash, theme: GameTheme) -> html.Div:
     return html.Div(
         [
             # Logo
             html.Div(
-                html.Img(
-                    src=app.get_asset_url("WWTBAMUS2020Logo.webp"),
-                    style={"height": "20%", "width": "20%"},
-                ),
+                html.Img(src=app.get_asset_url("WWTBAMUS2020Logo.webp"), style={"height": "20%", "width": "20%"}),
                 style={"textAlign": "center"},
             ),
             # Main container
             dbc.Container(
                 [
-                    # Question and Options
+                    # [Previous question and options section remains the same]
                     dbc.Row(
                         dbc.Col(
                             [
-                                # Question component
                                 html.Div(
                                     html.Span(id="question-text"),
                                     className="hex-shape question-box mt-4",
-                                    style={
-                                        "fontSize": "30px",
-                                        "textAlign": "center",
-                                    },
+                                    style={"fontSize": "30px", "textAlign": "center"},
                                     id="question-section",
                                 ),
-                                # Options grid
-                                html.Div(
-                                    id="options-grid",
-                                    style={
-                                        "marginTop": "20px",
-                                        "fontSize": "24px",
-                                    },
-                                ),
-                            ],
-                        ),
+                                html.Div(id="options-grid", style={"marginTop": "20px", "fontSize": "24px"}),
+                            ]
+                        )
                     ),
-                    # Timer and Controls
+                    # [Previous timer and controls section remains the same]
                     dbc.Row(
                         [
-                            # Timer Column
                             dbc.Col(
                                 [
                                     html.Div(
                                         html.Span("Timer"),
                                         className="hex-shape question-box mb-0 mt-4",
+                                        style={"fontSize": "30px"},
                                     ),
                                     dbc.Card(
-                                        [
-                                            dbc.CardBody(
-                                                html.H2(
-                                                    "30",
-                                                    id="timer-display",
-                                                    style={
-                                                        "color": "#FFD700",
-                                                        "textAlign": "center",
-                                                        "fontSize": "48px",
-                                                    },
-                                                ),
-                                            ),
-                                        ],
-                                        style={"backgroundColor": "#00003B"},
+                                        dbc.CardBody(
+                                            html.H2(
+                                                "30",
+                                                id="timer-display",
+                                                style={
+                                                    "color": theme.accent,
+                                                    "textAlign": "center",
+                                                    "fontSize": "48px",
+                                                },
+                                            )
+                                        ),
+                                        style={"backgroundColor": theme.background},
                                     ),
                                 ],
                                 width=6,
                             ),
-                            # Control Buttons
                             dbc.Col(
                                 html.Div(
                                     [
@@ -78,158 +226,86 @@ def create_game_layout(app: Dash):
                                             html.Span(text),
                                             className="hex-shape hex-button",
                                             id=f"{id_}-btn",
+                                            style={"fontSize": "30px"},
                                         )
-                                        for text, id_ in [
-                                            ("Previous", "prev-question"),
-                                            ("Next", "next-question"),
-                                        ]
+                                        for text, id_ in [("Previous", "prev-question"), ("Next", "next-question")]
                                     ],
                                     className="controls-container mt-4",
-                                    style={
-                                        "display": "flex",
-                                        "justifyContent": "center",
-                                        "gap": "20px",
-                                    },
+                                    style={"display": "flex", "justifyContent": "center", "gap": "20px"},
                                 ),
                                 width=6,
                             ),
-                        ],
-                        style={"display": "flex", "flexWrap": "wrap"},
+                        ]
                     ),
-                    # Statistics Section
+                    # Leaderboard and Statistics Section
                     dbc.Row(
-                        dbc.Col(
-                            dbc.Card(
+                        [
+                            dbc.Col(
                                 [
-                                    dbc.CardHeader(
-                                        "Question Statistics",
-                                        style={
-                                            "backgroundColor": "#1a1a1a",
-                                            "color": "#FFD700",
-                                        },
+                                    html.Div(
+                                        html.Span("Leaderboard"),
+                                        className="hex-shape question-box mb-0 mt-4",
+                                        style={"fontSize": "30px"},
                                     ),
-                                    dbc.CardBody(
-                                        html.Div(
-                                            [
-                                                html.H4(
-                                                    "Visualization Area",
-                                                    style={
-                                                        "color": "#FFD700",
-                                                        "textAlign": "center",
-                                                    },
-                                                ),
-                                                html.P(
-                                                    "Statistical visualizations for current question will appear here.",
-                                                    style={
-                                                        "color": "#ffffff",
-                                                        "textAlign": "center",
-                                                    },
-                                                ),
-                                            ],
-                                            id="visualization-container",
-                                            style={
-                                                "height": "400px",
-                                                "display": "flex",
-                                                "flexDirection": "column",
-                                                "justifyContent": "center",
-                                            },
+                                    dbc.Card(
+                                        dbc.CardBody(
+                                            id="leaderboard-card-body",
+                                            className="ms-4 me-4",
                                         ),
-                                        style={"backgroundColor": "#2a2a2a"},
+                                        style={"backgroundColor": "inherit"},
                                     ),
                                 ],
+                                width=4,
                             ),
-                        ),
+                            dbc.Col(
+                                [
+                                    html.Div(
+                                        html.Span("Statistics"),
+                                        className="hex-shape question-box mb-0 mt-4",
+                                        style={"fontSize": "30px"},
+                                    ),
+                                    dbc.Card(
+                                        id="statistics-card",
+                                        style={"backgroundColor": "inherit"},
+                                    ),
+                                ],
+                                width=8,
+                            ),
+                        ],
+                        className="mt-4",
                     ),
+                    # [Previous game state storage remains the same]
                     dcc.Store(id="current-question-index", data=0),
                     dcc.Store(id="time-up", data=False),
-                    dcc.Interval(
-                        id="timer-interval",
-                        interval=1000,
-                        n_intervals=0,
-                        max_intervals=30,
+                    dcc.Interval(id="timer-interval", interval=1000, n_intervals=0, max_intervals=30),
+                    # Background audio
+                    html.Audio(
+                        src=app.get_asset_url("226000-66fa2379-b277-4480-a2bc-feeb689bd09b.mp3"),
+                        id="bg-audio",
+                        autoPlay=True,
+                        loop=True,
+                        hidden=False,
                     ),
                 ],
                 fluid=True,
             ),
-            html.Audio(
-                src=app.get_asset_url("226000-66fa2379-b277-4480-a2bc-feeb689bd09b.mp3"),
-                hidden=False,
-                autoPlay=True,
-                loop=True,
-                id="bg-audio",
-            ),
-            dbc.Modal(
-                [
-                    dbc.ModalHeader(dbc.ModalTitle("Header"), style={"border": "1px solid #4169E1"}),
-                    dbc.ModalBody(
-                        dbc.Tabs(
-                            style={
-                                "--bs-nav-tabs-border-color": "#4169E1",
-                                "--bs-nav-link-hover-color": "#4169E1",
-                                "--bs-nav-tabs-link-active-border-color": "#4169E1 #4169E1 transparent",
-                                "--bs-nav-tabs-link-active-bg": "#000066",
-                            },
-                            id="visualization-tabs",
-                        ),
-                    ),
-                ],
-                id="modal-question",
-                size="xl",
-                is_open=False,
-                content_style={"backgroundColor": "#000066", "border": "1px solid #4169E1"},
-            ),
-            dbc.Modal(
-                [
-                    dbc.ModalHeader(dbc.ModalTitle("Header"), style={"border": "1px solid #4169E1"}),
-                    dbc.ModalBody(id="visualisation-answer"),
-                ],
-                id="modal-answer",
-                size="xl",
-                is_open=False,
-                content_style={"backgroundColor": "#000066", "border": "1px solid #4169E1"},
-            ),
+            # Modals
+            *create_modals(theme),
         ],
-        style={
-            "backgroundColor": "#00003B",
-            "minHeight": "100vh",
-            "padding": "20px",
-        },
+        style={"backgroundColor": theme.background, "minHeight": "100vh", "padding": "20px"},
     )
 
 
-def run_app(debug=False):
-    app = Dash(
-        __name__,
-        external_stylesheets=[dbc.themes.DARKLY],
-        assets_folder="assets",
-    )
-    app.layout = create_game_layout(app=app)
-
-    # Sample questions and options with correct answers
-    questions = [
-        "What is the capital city of France?",
-        "Which planet is known as the Red Planet?",
-        "What is the largest mammal on Earth?",
-    ]
-    options = {
-        0: [("A", "Paris"), ("B", "London"), ("C", "Berlin"), ("D", "Madrid")],
-        1: [("A", "Mars"), ("B", "Venus"), ("C", "Jupiter"), ("D", "Saturn")],
-        2: [("A", "Blue Whale"), ("B", "African Elephant"), ("C", "Giraffe"), ("D", "Hippopotamus")],
-    }
-    correct_answers = {0: "A", 1: "A", 2: "A"}
-
+def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
     @app.callback(
         [
             Output("timer-display", "children"),
             Output("bg-audio", "loop"),
             Output("bg-audio", "src"),
             Output("time-up", "data"),
-            Output("timer-interval", "n_intervals"),  # Added output
+            Output("timer-interval", "n_intervals"),
         ],
-        [
-            Input("timer-interval", "n_intervals"),
-            Input("current-question-index", "data"),  # Added input
-        ],
+        [Input("timer-interval", "n_intervals"), Input("current-question-index", "data")],
     )
     def update_timer(n_intervals, question_index):
         ctx = callback_context
@@ -258,101 +334,83 @@ def run_app(debug=False):
         [Input("current-question-index", "data"), Input("time-up", "data")],
     )
     def update_question_and_options(current_index, time_up):
-        question = questions[current_index]
-        current_options = options[current_index]
-        correct_answer = correct_answers[current_index]
-
-        def create_option_div(option_letter, option_text):
-            background_color = "#008000" if time_up and option_letter == correct_answer else "inherit"
-
-            return html.Div(
-                html.Span(f"{option_letter}: {option_text}"),
-                className="hex-shape option-box",
-                style={"backgroundColor": background_color} if time_up else {},
-            )
-
-        options_grid = [
-            dbc.Row(
-                [
-                    dbc.Col(
-                        create_option_div(current_options[0][0], current_options[0][1]),
-                        width=6,
-                    ),
-                    dbc.Col(
-                        create_option_div(current_options[1][0], current_options[1][1]),
-                        width=6,
-                    ),
-                ],
-            ),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        create_option_div(current_options[2][0], current_options[2][1]),
-                        width=6,
-                    ),
-                    dbc.Col(
-                        create_option_div(current_options[3][0], current_options[3][1]),
-                        width=6,
-                    ),
-                ],
-            ),
-        ]
-
-        return question, options_grid
+        question = game_data.questions[current_index]
+        current_options = game_data.options[current_index]
+        correct_answer = game_data.correct_answers[current_index]
+        return question, create_options_grid(current_options, correct_answer, time_up, theme)
 
     @app.callback(
         Output("current-question-index", "data"),
-        Input("next-question-btn", "n_clicks"),
-        Input("prev-question-btn", "n_clicks"),
+        [Input("next-question-btn", "n_clicks"), Input("prev-question-btn", "n_clicks")],
         State("current-question-index", "data"),
         prevent_initial_call=True,
     )
-    def navigate_questions(next_clicks, prev_clicks, current_question_index):
+    def navigate_questions(next_clicks, prev_clicks, current_index):
         ctx = callback_context
         if not ctx.triggered:
-            return current_question_index
-        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-        if button_id == "next-question-btn" and current_question_index < len(questions) - 1:
-            return current_question_index + 1
-        if button_id == "prev-question-btn" and current_question_index > 0:
-            return current_question_index - 1
-        return current_question_index
+            return current_index
 
-    # TODO: Add question visualisation here.
-    # Update the empty list with multiple tab components with tab data.
-    # Example:
-    # [
-    #     dbc.Tab(tab1_content, label="Tab 1"),
-    #     dbc.Tab(tab2_content, label="Tab 2"),
-    #     dbc.Tab(
-    #         "This tab's content is never seen", label="Tab 3", disabled=True
-    #     ),
-    # ]
-    # Replace tab component with dbc graphs.
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        if button_id == "next-question-btn" and current_index < len(game_data.questions) - 1:
+            return current_index + 1
+        if button_id == "prev-question-btn" and current_index > 0:
+            return current_index - 1
+        return current_index
+
     @app.callback(
-        Output("modal-question", "is_open"),
-        Output("visualization-tabs", "children"),
+        [Output("modal-question", "is_open"), Output("visualization-tabs", "children")],
         Input("question-section", "n_clicks"),
         State("modal-question", "is_open"),
     )
-    def toggle_modal(n1, is_open):
-        if n1:
-            return (not is_open), []
+    def toggle_question_modal(n_clicks, is_open):
+        if n_clicks:
+            return not is_open, []
         return is_open, []
 
     @app.callback(
-        Output("modal-answer", "is_open"),
-        Output("visualisation-answer", "children"),
-        Output("options-grid", "n_clicks"),
-        Input("options-grid", "n_clicks"),
-        Input("time-up", "data"),
+        [
+            Output("modal-answer", "is_open"),
+            Output("visualisation-answer", "children"),
+            Output("options-grid", "n_clicks"),
+        ],
+        [Input("options-grid", "n_clicks"), Input("time-up", "data")],
         State("modal-answer", "is_open"),
     )
-    def toggle_modal_ans(n1, time_up, is_open):
-        if n1 and time_up:
+    def toggle_answer_modal(n_clicks, time_up, is_open):
+        if n_clicks and time_up:
             return not is_open, [], no_update
         return no_update, no_update, 0
 
+    @app.callback(
+        Output("leaderboard-card-body", "children"),
+        Input("time-up", "data"),
+    )
+    def update_leaderboard(time_up):
+        if time_up:
+            print("Time Up!")
+            leader_data = game_data.leader_board
+            return create_leaderboard(leader_data, theme)
+        return no_update
+
+    @app.callback(
+        Output("statistics-card", "children"),
+        Input("time-up", "data"),
+    )
+    def update_leaderboard(time_up):
+        if time_up:
+            print("Time Up!")
+            answer_data = game_data.leader_board
+            return create_statistics_card(leader_data, theme)
+        return no_update
+
+
+def run_app(debug=False):
+    app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY], assets_folder="assets")
+    theme = GameTheme()
+    game_data = GameData()
+
+    app.layout = create_game_layout(app, theme)
+    init_callbacks(app, game_data, theme)
     app.run_server(debug=debug)
 
 
