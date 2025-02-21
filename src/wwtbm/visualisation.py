@@ -1,6 +1,4 @@
 import plotly.graph_objects as go
-# df_question,df_answer = get_data()  # Call get_data() to get the DataFrame
-
 import pandas as pd
 
 def get_user_performance_graph(df_answer, top_n=None):
@@ -87,12 +85,14 @@ def get_user_performance_graph(df_answer, top_n=None):
     
     # Update axes
     fig.update_xaxes(
+        showgrid=False,
         tickangle=45,
         gridcolor='#404040',
         tickfont=dict(size=10)
     )
     
     fig.update_yaxes(
+        showgrid=False,
         gridcolor='#404040',
         zeroline=True,
         zerolinecolor='#404040'
@@ -144,5 +144,6 @@ def get_answer_distribution_graph(df, question_number):
         font=dict(color="#ffffff"),
         margin=dict(t=50, b=50)
     )
-
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(showgrid=False)
     return fig
