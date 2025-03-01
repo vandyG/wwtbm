@@ -2,7 +2,9 @@ import dash_bootstrap_components as dbc
 from dash import Dash, Input, Output, State, callback_context, dcc, html, no_update
 from dataclasses import dataclass
 from typing import List, Dict, Tuple
-
+from fetch import get_answer_data
+from visualisation import get_user_performance_graph,get_answer_distribution_graph
+from question_visualisation import *
 
 @dataclass
 class GameTheme:
@@ -28,23 +30,69 @@ class GameTheme:
 class GameData:
     def __init__(self):
         self.questions = [
-            "What is the capital city of France?",
-            "Which planet is known as the Red Planet?",
-            "What is the largest mammal on Earth?",
+            "What’s the biggest fear of an iPhone user?",
+            "Which type of milk is NOT real milk?",
+            "What magical ingredient in coffee turns zombies into functioning humans every morning?",
+            "What is the Iris dataset most commonly used for?",
+            "What’s the best way to find your gate on AIRPORT?",
+            "Which city is home to Hollywood??",
         ]
         self.options = {
-            0: [("A", "Paris"), ("B", "London"), ("C", "Berlin"), ("D", "Madrid")],
-            1: [("A", "Mars"), ("B", "Venus"), ("C", "Jupiter"), ("D", "Saturn")],
-            2: [("A", "Blue Whale"), ("B", "African Elephant"), ("C", "Giraffe"), ("D", "Hippopotamus")],
+            0: [
+                ("A", "Running out of storage"),
+                ("B", 'Seeing the "low battery" warning at 10%'),
+                ("C", "Dropping their phone and praying it survived"),
+                ("D", "All of the above"),
+            ],
+            1: [
+                ("A", "Cow milk"),
+                ("B", "Oat milk"),
+                ("C", "Soy milk"),
+                ("D", "iMilk (Apple’s latest product)"),
+            ],
+            2: [
+                ("A", "Sugar"),
+                ("B", "Caffeine"),
+                ("C", "Hope"),
+                ("D", "Pure willpower"),
+            ],
+            3: [
+                ("A", "Identifying flowers"),
+                ("B", "Training AI to take over the world"),
+                ("C", "Confusing beginners in machine learning"),
+                ("D", "Teaching pandas (the Python library, not the bear) new tricks"),
+            ],
+            4: [
+                ("A", "Follow the herd"),
+                ("B", "Ask someone who looks equally lost"),
+                ("C", "Pray"),
+                ("D", "Walk forever"),
+            ],
+            5: [
+                ("A", "Los Angeles"),
+                ("B", "San Francisco"),
+                ("C", "Las Vegas"),
+                ("D", "Miami"),
+            ],
         }
-        self.correct_answers = {0: "A", 1: "A", 2: "A"}
-        self.leader_board = [
-            ("Balle ShavaShava", 1000000),
-            ("Balle ShavaShava", 1000000),
-            ("Balle ShavaShava", 1000000),
-            ("Balle ShavaShava", 1000000),
-            ("Balle ShavaShava", 1000000),
-        ]
+        self.correct_answers = {
+            0: "D",
+            1: "D",
+            2: "B",
+            3: "A",
+            4: "B",
+            5: "A",
+        }
+        self.answer_data = None
+        self.leader_board = {}
+
+    def update_answer_data(self):
+        self.answer_data = get_answer_data()
+        return self.answer_data
+    def update_leader_data(self):
+        self.answer_data = get_answer_data()
+        self.leader_board = dict(sorted(self.answer_data[self.answer_data["Correct"]].groupby("Name").size().to_dict().items(), key=lambda x: x[1], reverse=True))
+        return self.leader_board
 
 
 def create_option_div(
@@ -125,12 +173,12 @@ def create_leaderboard(leader_data: list[tuple[str, int]], theme: GameTheme) -> 
                             colSpan=1,
                         ),
                         html.Td(
-                            f"{leader[0]}",
+                            f"{leader}",
                             className="text-center",
                             colSpan=3,
                         ),
                         html.Td(
-                            f"${leader[1]}",
+                            f"${leader_data[leader]}",
                             className="text-center",
                             colSpan=2,
                         ),
@@ -150,7 +198,7 @@ def create_leaderboard(leader_data: list[tuple[str, int]], theme: GameTheme) -> 
     )
 
 
-def create_statistics_card(theme: GameTheme) -> dbc.Col:
+def create_statistics_card(fig, theme: GameTheme) -> dbc.Col:
     return dbc.Col(
         [
             dbc.Card(
@@ -364,7 +412,10 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
     )
     def toggle_question_modal(n_clicks, is_open):
         if n_clicks:
-            return not is_open, []
+            figs=[]
+            fig = create_stock_line_chart()
+            figs = [dcc.Graph(figure=fig, style={"height": "100%"})]
+            return not is_open, figs
         return is_open, []
 
     @app.callback(
@@ -387,20 +438,22 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
     )
     def update_leaderboard(time_up):
         if time_up:
-            print("Time Up!")
-            leader_data = game_data.leader_board
+            print("1")
+            leader_data = game_data.update_leader_data()
+            print("2")            
             return create_leaderboard(leader_data, theme)
         return no_update
 
     @app.callback(
         Output("statistics-card", "children"),
-        Input("time-up", "data"),
+        [Input("time-up", "data")]
     )
-    def update_leaderboard(time_up):
+    def update_leaderboard_chart(time_up):
         if time_up:
-            print("Time Up!")
-            answer_data = game_data.leader_board
-            return create_statistics_card(leader_data, theme)
+            print("3")
+            fig = dcc.Graph(figure=get_user_performance_graph(game_data.update_answer_data(),5), style={"height": "100%"})
+            print("4")
+            return create_statistics_card(fig, theme)
         return no_update
 
 
