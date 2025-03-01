@@ -1,10 +1,13 @@
+from dataclasses import dataclass
+from typing import List, Tuple
+
 import dash_bootstrap_components as dbc
 from dash import Dash, Input, Output, State, callback_context, dcc, html, no_update
-from dataclasses import dataclass
-from typing import List, Dict, Tuple
-from fetch import get_answer_data
-from visualisation import get_user_performance_graph,get_answer_distribution_graph
-from question_visualisation import *
+
+from wwtbm.fetch import get_answer_data
+from wwtbm.question_visualisation import *
+from wwtbm.visualisation import get_answer_distribution_graph, get_user_performance_graph
+
 
 @dataclass
 class GameTheme:
@@ -83,16 +86,17 @@ class GameData:
             4: "B",
             5: "A",
         }
+        self.answer_points = {
+            1: 1000,
+            2: 8000,
+            3: 32000,
+            4: 500000,
+            5: 1000000,
+        }
         self.answer_data = None
-        self.leader_board = {}
 
     def update_answer_data(self):
         self.answer_data = get_answer_data()
-        return self.answer_data
-    def update_leader_data(self):
-        self.answer_data = get_answer_data()
-        self.leader_board = dict(sorted(self.answer_data[self.answer_data["Correct"]].groupby("Name").size().to_dict().items(), key=lambda x: x[1], reverse=True))
-        return self.leader_board
 
 
 def create_option_div(
@@ -107,8 +111,8 @@ def create_option_div(
 
 
 def create_options_grid(
-    options: List[Tuple[str, str]], correct_answer: str, time_up: bool, theme: GameTheme
-) -> List[dbc.Row]:
+    options: list[tuple[str, str]], correct_answer: str, time_up: bool, theme: GameTheme
+) -> list[dbc.Row]:
     return [
         dbc.Row(
             [
@@ -122,7 +126,7 @@ def create_options_grid(
     ]
 
 
-def create_modals(theme: GameTheme) -> List[dbc.Modal]:
+def create_modals(theme: GameTheme) -> list[dbc.Modal]:
     modal_style = theme.get_modal_style()
     header_style = {"border": f"1px solid {theme.secondary}"}
 
@@ -161,7 +165,7 @@ def create_modals(theme: GameTheme) -> List[dbc.Modal]:
     return [question_modal, answer_modal]
 
 
-def create_leaderboard(leader_data: list[tuple[str, int]], theme: GameTheme) -> dbc.CardBody:
+def create_leaderboard(leader_data: dict[str, int], theme: GameTheme) -> dbc.CardBody:
     return dbc.Table(
         html.Tbody(
             [
@@ -173,18 +177,18 @@ def create_leaderboard(leader_data: list[tuple[str, int]], theme: GameTheme) -> 
                             colSpan=1,
                         ),
                         html.Td(
-                            f"{leader}",
+                            f"{leader[0]}",
                             className="text-center",
                             colSpan=3,
                         ),
                         html.Td(
-                            f"${leader_data[leader]}",
+                            f"${leader[1]}",
                             className="text-center",
                             colSpan=2,
                         ),
                     ],
                 )
-                for rank, leader in enumerate(leader_data)
+                for rank, leader in enumerate(leader_data.items())
             ],
         ),
         bordered=False,
@@ -199,19 +203,13 @@ def create_leaderboard(leader_data: list[tuple[str, int]], theme: GameTheme) -> 
 
 
 def create_statistics_card(fig, theme: GameTheme) -> dbc.Col:
-    return dbc.Col(
+    return dbc.CardBody(
         [
-            dbc.Card(
-                [
-                    dbc.CardBody(
-                        [],
-                        style={"backgroundColor": theme.card_bg},
-                    ),
-                ],
-                style=theme.get_card_style(),
+            dcc.Graph(
+                figure=fig,
+                style={"backgroundColor": "inherit"},
             ),
         ],
-        width=8,
     )
 
 
@@ -412,7 +410,7 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
     )
     def toggle_question_modal(n_clicks, is_open):
         if n_clicks:
-            figs=[]
+            figs = []
             fig = create_stock_line_chart()
             figs = [dcc.Graph(figure=fig, style={"height": "100%"})]
             return not is_open, figs
@@ -434,26 +432,26 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
 
     @app.callback(
         Output("leaderboard-card-body", "children"),
+        Output("statistics-card", "children"),
         Input("time-up", "data"),
     )
     def update_leaderboard(time_up):
         if time_up:
-            print("1")
-            leader_data = game_data.update_leader_data()
-            print("2")            
-            return create_leaderboard(leader_data, theme)
-        return no_update
+            game_data.update_answer_data()
+            answer_data = game_data.answer_data
+            points = game_data.answer_points
+            answer_data["points"] = answer_data["Question"].map(points)
+            leader_board = dict(
+                sorted(
+                    answer_data[answer_data["Correct"]].groupby("Name")["points"].sum().to_dict().items(),
+                    key=lambda x: x[1],
+                    reverse=True,
+                ),
+            )
 
-    @app.callback(
-        Output("statistics-card", "children"),
-        [Input("time-up", "data")]
-    )
-    def update_leaderboard_chart(time_up):
-        if time_up:
-            print("3")
-            fig = dcc.Graph(figure=get_user_performance_graph(game_data.update_answer_data(),5), style={"height": "100%"})
-            print("4")
-            return create_statistics_card(fig, theme)
+            fig = get_user_performance_graph(answer_data, 5)
+            fig.update_layout(plot_bgcolor=theme.background, paper_bgcolor=theme.background)
+            return create_leaderboard(leader_board, theme), create_statistics_card(fig, theme)
         return no_update
 
 
