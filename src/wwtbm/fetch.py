@@ -35,13 +35,14 @@ def get_answers_power_automate_hook(file_path: Path, sheet: str, trigger_path: P
     Returns:
         DataFrame: Input excel file as pandas DataFrame.
     """
-    # with open(trigger_path, "w"):
-    #     pass
+    with open(trigger_path, "w"):
+        pass
 
     while True:
         if not Path(trigger_path).exists():
             print("Reading Excel file...")
             return read_excel_file(file_path, sheet=sheet)
+
 
 def filter_first_occurrence(df):
     """
@@ -68,9 +69,8 @@ def filter_first_occurrence(df):
 
     return filtered_df
 
-    
+
 def get_answer_data():
- 
     from os import environ
 
     file_path = Path(environ["ANSWERS_FILE"])
@@ -84,15 +84,14 @@ def get_answer_data():
     )
 
     df_answer = filter_first_occurrence(df_answer_unfiltered)
-    
+
     return df_answer
+
 
 def main():
-
-    df_answer = get_answer_data()    
+    df_answer = get_answer_data()
     return df_answer
+
 
 if __name__ == "__main__":
     main()
-    
-    
