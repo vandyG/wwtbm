@@ -4,8 +4,8 @@ from typing import List, Tuple
 import dash_bootstrap_components as dbc
 from dash import Dash, Input, Output, State, callback_context, dcc, html, no_update
 
+import wwtbm.question_visualisation as qv
 from wwtbm.fetch import get_answer_data
-from wwtbm.question_visualisation import *
 from wwtbm.visualisation import get_answer_distribution_graph, get_user_performance_graph
 
 
@@ -13,6 +13,7 @@ from wwtbm.visualisation import get_answer_distribution_graph, get_user_performa
 class GameTheme:
     primary: str = "#000066"
     secondary: str = "#4169E1"
+    hover: str = "#000099"
     background: str = "#00003B"
     text: str = "#FFFFFF"
     accent: str = "#FFD700"
@@ -33,12 +34,12 @@ class GameTheme:
 class GameData:
     def __init__(self):
         self.questions = [
-            "What’s the biggest fear of an iPhone user?",
-            "Which type of milk is NOT real milk?",
-            "What magical ingredient in coffee turns zombies into functioning humans every morning?",
-            "What is the Iris dataset most commonly used for?",
-            "What’s the best way to find your gate on AIRPORT?",
-            "Which city is home to Hollywood??",
+            "1. What’s the biggest fear of an iPhone user?",
+            "2. What is the most persistent decoration on NYC statues and buildings?",
+            "3. Which type of milk is NOT real milk?",
+            "4. What is the Iris dataset most commonly used for?",
+            "5. What’s the best way to find your gate on AIRPORT?",
+            "6. Which city is home to Hollywood??",
         ]
         self.options = {
             0: [
@@ -47,17 +48,17 @@ class GameData:
                 ("C", "Dropping their phone and praying it survived"),
                 ("D", "All of the above"),
             ],
-            1: [
+            2: [
                 ("A", "Cow milk"),
                 ("B", "Oat milk"),
                 ("C", "Soy milk"),
                 ("D", "iMilk (Apple’s latest product)"),
             ],
-            2: [
-                ("A", "Sugar"),
-                ("B", "Caffeine"),
-                ("C", "Hope"),
-                ("D", "Pure willpower"),
+            1: [
+                ("A", "Graffiti mustaches"),
+                ("B", "'I ❤️ NY' stickers"),
+                ("C", "Lost tourist maps"),
+                ("D", "Pigeon Picasso painting"),
             ],
             3: [
                 ("A", "Identifying flowers"),
@@ -132,7 +133,7 @@ def create_modals(theme: GameTheme) -> list[dbc.Modal]:
 
     question_modal = dbc.Modal(
         [
-            dbc.ModalHeader(dbc.ModalTitle("Header"), style=header_style),
+            dbc.ModalHeader(style=header_style, id="modal-question-header"),
             dbc.ModalBody(
                 dbc.Tabs(
                     style={
@@ -153,8 +154,11 @@ def create_modals(theme: GameTheme) -> list[dbc.Modal]:
 
     answer_modal = dbc.Modal(
         [
-            dbc.ModalHeader(dbc.ModalTitle("Header"), style=header_style),
-            dbc.ModalBody(id="visualisation-answer"),
+            dbc.ModalHeader(dbc.ModalTitle("Audience Poll"), style=header_style),
+            dbc.ModalBody(
+                id="visualisation-answer",
+                class_name="p-5",
+            ),
         ],
         id="modal-answer",
         size="xl",
@@ -163,6 +167,21 @@ def create_modals(theme: GameTheme) -> list[dbc.Modal]:
     )
 
     return [question_modal, answer_modal]
+
+
+def create_modal_tabs(figures: dict, theme):
+    return [
+        dbc.Tab(
+            dbc.Card(
+                [dcc.Graph(figure=fig)],
+                class_name="p-5",
+                style={"backgroundColor": "inherit"},
+            ),
+            label=label,
+            active_label_style={"backgroundColor": theme.secondary},
+        )
+        for label, fig in figures.items()
+    ]
 
 
 def create_leaderboard(leader_data: dict[str, int], theme: GameTheme) -> dbc.CardBody:
@@ -404,17 +423,21 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
         return current_index
 
     @app.callback(
-        [Output("modal-question", "is_open"), Output("visualization-tabs", "children")],
+        [
+            Output("modal-question", "is_open"),
+            Output("modal-question-header", "children"),
+            Output("visualization-tabs", "children"),
+        ],
         Input("question-section", "n_clicks"),
         State("modal-question", "is_open"),
+        State("current-question-index", "data"),
     )
-    def toggle_question_modal(n_clicks, is_open):
+    def toggle_question_modal(n_clicks, is_open, curr_ques):
         if n_clicks:
-            figs = []
-            fig = create_stock_line_chart()
-            figs = [dcc.Graph(figure=fig, style={"height": "100%"})]
-            return not is_open, figs
-        return is_open, []
+            figs = qv.get_ques_vis(curr_ques)
+
+            return not is_open, dbc.ModalTitle(game_data.questions[curr_ques]), create_modal_tabs(figs, theme)
+        return is_open, no_update, no_update
 
     @app.callback(
         [
@@ -424,10 +447,15 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
         ],
         [Input("options-grid", "n_clicks"), Input("time-up", "data")],
         State("modal-answer", "is_open"),
+        State("current-question-index", "data"),
     )
-    def toggle_answer_modal(n_clicks, time_up, is_open):
+    def toggle_answer_modal(n_clicks, time_up, is_open, curr_ques):
         if n_clicks and time_up:
-            return not is_open, [], no_update
+            answer_data = game_data.answer_data
+            # new_index = [chr(ord + 96).upper() for ord in answer_data["Answer"]]
+            # answer_data["Answer"] = new_index
+            fig = get_answer_distribution_graph(answer_data, curr_ques + 1)
+            return not is_open, dcc.Graph(figure=fig), no_update
         return no_update, no_update, 0
 
     @app.callback(
