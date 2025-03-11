@@ -119,8 +119,8 @@ def get_user_performance_graph(df_answer: pd.DataFrame, top_n: int = 5) -> go.Fi
             "bordercolor": "grey",
             "borderwidth": 1,
         },
-        hoverlabel=dict(bgcolor="#00003B", font_size=14),
-        margin=dict(l=0, r=0, b=0, t=0),
+        hoverlabel={"bgcolor": "#00003B", "font_size": 14},
+        margin={"l": 0, "r": 0, "b": 0, "t": 0},
     )
 
     # Update axes
