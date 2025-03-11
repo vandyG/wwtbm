@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from typing import List, Tuple
 
 import dash_bootstrap_components as dbc
+import plotly.graph_objects as go
 from dash import Dash, Input, Output, State, callback_context, dcc, html, no_update
+from pandas import DataFrame
 
 import wwtbm.question_visualisation as qv
 from wwtbm.fetch import get_answer_data
@@ -21,24 +22,24 @@ class GameTheme:
     card_bg: str = "#2a2a2a"
     header_bg: str = "#1a1a1a"
 
-    def get_modal_style(self):
+    def get_modal_style(self) -> dict:
         return {"backgroundColor": self.primary, "border": f"1px solid {self.secondary}"}
 
-    def get_card_style(self):
+    def get_card_style(self) -> dict:
         return {"backgroundColor": self.card_bg, "border": f"1px solid {self.secondary}", "color": self.text}
 
-    def get_header_style(self):
+    def get_header_style(self) -> dict:
         return {"backgroundColor": self.header_bg, "color": self.accent}
 
 
 class GameData:
     def __init__(self):
         self.questions = [
-            "1. What’s the biggest fear of an iPhone user?",
+            "1. What's the biggest fear of an iPhone user?",
             "2. What is the most persistent decoration on NYC statues and buildings?",
             "3. Which type of milk is NOT real milk?",
             "4. What is the Iris dataset most commonly used for?",
-            "5. What’s the best way to find your gate on AIRPORT?",
+            "5. What's the best way to find your gate on AIRPORT?",
             "6. Which city is home to Hollywood??",
         ]
         self.options = {
@@ -52,19 +53,19 @@ class GameData:
                 ("A", "Cow milk"),
                 ("B", "Oat milk"),
                 ("C", "Soy milk"),
-                ("D", "iMilk (Apple’s latest product)"),
+                ("D", "iMilk (Apple's latest product)"),
             ],
             1: [
                 ("A", "Graffiti mustaches"),
                 ("B", "'I ❤️ NY' stickers"),
                 ("C", "Lost tourist maps"),
-                ("D", "Pigeon Picasso painting"),
+                ("D", "Pfigeon Picasso painting"),
             ],
             3: [
                 ("A", "Identifying flowers"),
                 ("B", "Training AI to take over the world"),
                 ("C", "Confusing beginners in machine learning"),
-                ("D", "Teaching pandas (the Python library, not the bear) new tricks"),
+                ("D", "Teaching pandas new tricks"),
             ],
             4: [
                 ("A", "Follow the herd"),
@@ -82,7 +83,7 @@ class GameData:
         self.correct_answers = {
             0: "D",
             1: "D",
-            2: "B",
+            2: "D",
             3: "A",
             4: "B",
             5: "A",
@@ -96,12 +97,16 @@ class GameData:
         }
         self.answer_data = None
 
-    def update_answer_data(self):
+    def update_answer_data(self) -> DataFrame:
         self.answer_data = get_answer_data()
 
 
 def create_option_div(
-    option_letter: str, option_text: str, correct_answer: str, time_up: bool, theme: GameTheme
+    option_letter: str,
+    option_text: str,
+    correct_answer: str,
+    time_up: bool,
+    theme: GameTheme,
 ) -> html.Div:
     style = {"backgroundColor": theme.success if time_up and option_letter == correct_answer else "inherit"}
     return html.Div(
@@ -112,14 +117,18 @@ def create_option_div(
 
 
 def create_options_grid(
-    options: list[tuple[str, str]], correct_answer: str, time_up: bool, theme: GameTheme
+    options: list[tuple[str, str]],
+    correct_answer: str,
+    time_up: bool,
+    theme: GameTheme,
 ) -> list[dbc.Row]:
     return [
         dbc.Row(
             [
                 dbc.Col(create_option_div(options[i][0], options[i][1], correct_answer, time_up, theme), width=6),
                 dbc.Col(
-                    create_option_div(options[i + 1][0], options[i + 1][1], correct_answer, time_up, theme), width=6
+                    create_option_div(options[i + 1][0], options[i + 1][1], correct_answer, time_up, theme),
+                    width=6,
                 ),
             ],
         )
@@ -143,7 +152,7 @@ def create_modals(theme: GameTheme) -> list[dbc.Modal]:
                         "--bs-nav-tabs-link-active-bg": theme.primary,
                     },
                     id="visualization-tabs",
-                )
+                ),
             ),
         ],
         id="modal-question",
@@ -169,7 +178,7 @@ def create_modals(theme: GameTheme) -> list[dbc.Modal]:
     return [question_modal, answer_modal]
 
 
-def create_modal_tabs(figures: dict, theme):
+def create_modal_tabs(figures: dict, theme: GameTheme) -> list[dbc.Tab]:
     return [
         dbc.Tab(
             dbc.Card(
@@ -184,7 +193,7 @@ def create_modal_tabs(figures: dict, theme):
     ]
 
 
-def create_leaderboard(leader_data: dict[str, int], theme: GameTheme) -> dbc.CardBody:
+def create_leaderboard(leader_data: dict[str, int], theme: GameTheme) -> dbc.Table:
     return dbc.Table(
         html.Tbody(
             [
@@ -221,7 +230,7 @@ def create_leaderboard(leader_data: dict[str, int], theme: GameTheme) -> dbc.Car
     )
 
 
-def create_statistics_card(fig, theme: GameTheme) -> dbc.Col:
+def create_statistics_card(fig: go.Figure, theme: GameTheme) -> dbc.Col:
     return dbc.CardBody(
         [
             dcc.Graph(
@@ -254,8 +263,8 @@ def create_game_layout(app: Dash, theme: GameTheme) -> html.Div:
                                     id="question-section",
                                 ),
                                 html.Div(id="options-grid", style={"marginTop": "20px", "fontSize": "24px"}),
-                            ]
-                        )
+                            ],
+                        ),
                     ),
                     # [Previous timer and controls section remains the same]
                     dbc.Row(
@@ -277,7 +286,7 @@ def create_game_layout(app: Dash, theme: GameTheme) -> html.Div:
                                                     "textAlign": "center",
                                                     "fontSize": "48px",
                                                 },
-                                            )
+                                            ),
                                         ),
                                         style={"backgroundColor": theme.background},
                                     ),
@@ -300,7 +309,7 @@ def create_game_layout(app: Dash, theme: GameTheme) -> html.Div:
                                 ),
                                 width=6,
                             ),
-                        ]
+                        ],
                     ),
                     # Leaderboard and Statistics Section
                     dbc.Row(
@@ -361,7 +370,7 @@ def create_game_layout(app: Dash, theme: GameTheme) -> html.Div:
     )
 
 
-def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
+def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):  # noqa: ANN201, D103
     @app.callback(
         [
             Output("timer-display", "children"),
@@ -372,7 +381,7 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
         ],
         [Input("timer-interval", "n_intervals"), Input("current-question-index", "data")],
     )
-    def update_timer(n_intervals, question_index):
+    def update_timer(n_intervals, question_index):  # noqa: ANN001, ANN202, ARG001
         ctx = callback_context
         if ctx.triggered_id == "current-question-index":
             return (
@@ -398,7 +407,7 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
         [Output("question-text", "children"), Output("options-grid", "children")],
         [Input("current-question-index", "data"), Input("time-up", "data")],
     )
-    def update_question_and_options(current_index, time_up):
+    def update_question_and_options(current_index: int, time_up: bool):  # noqa: ANN202, FBT001
         question = game_data.questions[current_index]
         current_options = game_data.options[current_index]
         correct_answer = game_data.correct_answers[current_index]
@@ -410,7 +419,7 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
         State("current-question-index", "data"),
         prevent_initial_call=True,
     )
-    def navigate_questions(next_clicks, prev_clicks, current_index):
+    def navigate_questions(next_clicks: int, prev_clicks: int, current_index: int):  # noqa: ANN202, ARG001
         ctx = callback_context
         if not ctx.triggered:
             return current_index
@@ -432,7 +441,7 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
         State("modal-question", "is_open"),
         State("current-question-index", "data"),
     )
-    def toggle_question_modal(n_clicks, is_open, curr_ques):
+    def toggle_question_modal(n_clicks: int, is_open: bool, curr_ques: int):  # noqa: ANN202, FBT001
         if n_clicks:
             figs = qv.get_ques_vis(curr_ques)
 
@@ -449,7 +458,7 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
         State("modal-answer", "is_open"),
         State("current-question-index", "data"),
     )
-    def toggle_answer_modal(n_clicks, time_up, is_open, curr_ques):
+    def toggle_answer_modal(n_clicks: int, time_up: bool, is_open: bool, curr_ques: int):  # noqa: ANN202, FBT001
         if n_clicks and time_up:
             answer_data = game_data.answer_data
             # new_index = [chr(ord + 96).upper() for ord in answer_data["Answer"]]
@@ -463,7 +472,7 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
         Output("statistics-card", "children"),
         Input("time-up", "data"),
     )
-    def update_leaderboard(time_up):
+    def update_leaderboard(time_up: bool):  # noqa: ANN202, FBT001
         if time_up:
             game_data.update_answer_data()
             answer_data = game_data.answer_data
@@ -483,7 +492,7 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):
         return no_update
 
 
-def run_app(debug=False):
+def run_app(debug: bool = False) -> None:  # noqa: D103, FBT001, FBT002
     app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY], assets_folder="assets")
     theme = GameTheme()
     game_data = GameData()
