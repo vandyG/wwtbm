@@ -1,10 +1,48 @@
-import plotly.graph_objects as go
+"""Quiz Performance Visualization Module.
+
+This module provides functions for creating interactive visualizations of user performance on quizzes or assessments.
+It uses Plotly to generate interactive graphics that help analyze how users performed on multiple-choice questions.
+
+The module contains two main visualization functions:
+- get_user_performance_graph: Creates a stacked bar chart showing correct vs. incorrect answers for each user
+- get_answer_distribution_graph: Creates a histogram showing the distribution of selected answers for a specific question
+
+Both functions return Plotly Figure objects that can be displayed in web applications or notebooks.
+
+Dependencies:
+    - pandas: For data manipulation
+    - plotly.graph_objects: For creating interactive visualizations
+
+Example usage:
+    ```
+    import pandas as pd
+
+    # Sample data
+    data = {
+        "Name": ["Alice", "Bob", "Alice", "Charlie", "Bob"],
+        "Question": [1, 1, 2, 1, 2],
+        "Answer": [1, 2, 3, 1, 4],
+        "Correct": [True, False, True, True, True],
+    }
+
+    df = pd.DataFrame(data)
+
+    # Generate user performance graph
+    performance_fig = get_user_performance_graph(df, top_n=3)
+    performance_fig.show()
+
+    # Generate answer distribution for question 1
+    distribution_fig = get_answer_distribution_graph(df, question_number=1)
+    distribution_fig.show()
+    ```
+"""
+
 import pandas as pd
+import plotly.graph_objects as go
 
 
-def get_user_performance_graph(df_answer, top_n=5):
-    """
-    Creates an interactive stacked bar graph showing correct and incorrect answers per user.
+def get_user_performance_graph(df_answer: pd.DataFrame, top_n: int = 5) -> go.Figure:
+    """Creates an interactive stacked bar graph showing correct and incorrect answers per user.
 
     Args:
         df_answer (pd.DataFrame): DataFrame containing user answers with columns
@@ -41,10 +79,10 @@ def get_user_performance_graph(df_answer, top_n=5):
             marker_color="#FFFFFF",  # Green color
             marker_line_width=0,
             hovertemplate="<br>".join(
-                ["Name: %{x}", "Correct Answers: %{y}", "Success Rate: %{customdata:.1f}%", "<extra></extra>"]
+                ["Name: %{x}", "Correct Answers: %{y}", "Success Rate: %{customdata:.1f}%", "<extra></extra>"],
             ),
             customdata=(performance_data["Correct"] / performance_data["Total"] * 100),
-        )
+        ),
     )
 
     # Add incorrect answers bar
@@ -56,10 +94,10 @@ def get_user_performance_graph(df_answer, top_n=5):
             name="Incorrect",
             marker_color="#000099",  # Red color
             hovertemplate="<br>".join(
-                ["Name: %{x}", "Incorrect Answers: %{y}", "Error Rate: %{customdata:.1f}%", "<extra></extra>"]
+                ["Name: %{x}", "Incorrect Answers: %{y}", "Error Rate: %{customdata:.1f}%", "<extra></extra>"],
             ),
             customdata=(performance_data["Incorrect"] / performance_data["Total"] * 100),
-        )
+        ),
     )
 
     # Update layout
@@ -69,33 +107,32 @@ def get_user_performance_graph(df_answer, top_n=5):
         barmode="stack",
         paper_bgcolor="#2a2a2a",
         plot_bgcolor="#2a2a2a",
-        font=dict(color="#ffffff"),
+        font={"color": "#ffffff"},
         showlegend=True,
-        legend=dict(
-            orientation="h",  # Horizontal legend
-            yanchor="bottom",
-            y=-0.15,  # Position below the plot
-            xanchor="center",
-            x=0.5,  # Center horizontally
-            bgcolor="#00003B",
-            bordercolor="grey",
-            borderwidth=1,
-        ),
+        legend={
+            "orientation": "h",  # Horizontal legend
+            "yanchor": "bottom",
+            "y": -0.15,  # Position below the plot
+            "xanchor": "center",
+            "x": 0.5,  # Center horizontally
+            "bgcolor": "#00003B",
+            "bordercolor": "grey",
+            "borderwidth": 1,
+        },
         hoverlabel=dict(bgcolor="#00003B", font_size=14),
         margin=dict(l=0, r=0, b=0, t=0),
     )
 
     # Update axes
-    fig.update_xaxes(showgrid=False, tickfont=dict(size=10))
+    fig.update_xaxes(showgrid=False, tickfont={"size": 10})
 
     fig.update_yaxes(showgrid=True, gridcolor="grey", zeroline=True, zerolinecolor="grey")
 
     return fig
 
 
-def get_answer_distribution_graph(df, question_number):
-    """
-    Returns a Plotly graph object showing answer distribution for a specific question.
+def get_answer_distribution_graph(df: pd.DataFrame, question_number: int) -> go.Figure:
+    """Returns a Plotly graph object showing answer distribution for a specific question.
 
     Args:
         filtered_df (pd.DataFrame): Filtered DataFrame with first occurrences.
@@ -115,9 +152,9 @@ def get_answer_distribution_graph(df, question_number):
         go.Histogram(
             x=df_question["Answer"],
             name=f"Question {question_number}",
-            marker=dict(line=dict(width=1, color="black")),
+            marker={"line": {"width": 1, "color": "black"}},
             nbinsx=4,  # Ensure we have exactly 4 bins (for answers 1, 2, 3, 4)
-        )
+        ),
     )
 
     # Update layout
@@ -125,17 +162,17 @@ def get_answer_distribution_graph(df, question_number):
         title=f"Answer Distribution for Question {question_number}",
         xaxis_title="Selected Answer",
         yaxis_title="Count",
-        xaxis=dict(
-            tickmode="array",
-            tickvals=[1, 2, 3, 4],  # Ensure only 1, 2, 3, 4 appear
-            ticktext=["Option 1", "Option 2", "Option 3", "Option 4"],
-            dtick=1,
-        ),
+        xaxis={
+            "tickmode": "array",
+            "tickvals": [1, 2, 3, 4],  # Ensure only 1, 2, 3, 4 appear
+            "ticktext": ["A", "B", "C", "D"],
+            "dtick": 1,
+        },
         bargap=0.1,
         paper_bgcolor="#2a2a2a",
         plot_bgcolor="#2a2a2a",
-        font=dict(color="#ffffff"),
-        margin=dict(t=50, b=50),
+        font={"color": "#ffffff"},
+        margin={"t": 50, "b": 50},
     )
     fig.update_xaxes(showgrid=False)
     fig.update_yaxes(showgrid=False)
