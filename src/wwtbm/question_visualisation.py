@@ -1,14 +1,59 @@
+"""Data Visualization Module for Quiz Questions.
+
+This module provides functions to generate interactive visualizations for a quiz application.
+Each visualization represents a different question in the quiz, drawing from various datasets
+to create engaging Plotly charts including line graphs, heatmaps, geographic maps, and 3D plots.
+
+The module uses a factory pattern through the get_ques_vis function to retrieve the appropriate
+visualization based on the question number. Each question function returns a dictionary with
+a descriptive name as the key and a Plotly figure object as the value.
+
+Dependencies:
+    - pandas: For data manipulation and processing
+    - plotly.express: For creating expressive, easy-to-use plots
+    - plotly.graph_objects: For more customized plotting capabilities
+
+Example usage:
+    ```
+    # Get visualization for question 1
+    apple_stock_viz = get_ques_vis(0)
+
+    # Display the figure
+    for name, fig in apple_stock_viz.items():
+        fig.show()
+    ```
+"""
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
 
 def get_ques_vis(number: int) -> dict:
+    """Factory function to retrieve the visualization for a specific question.
+
+    Args:
+        number (int): Zero-based index of the question (0-3)
+
+    Returns:
+        dict: Dictionary with visualization name as key and Plotly figure as value
+
+    Raises:
+        IndexError: If question number is out of range
+    """
     index = [question_1, question_2, question_3, question_4]
     return index[number]()
 
 
 def question_1() -> dict[str, go.Figure]:
+    """Generate visualization for Question 1: Apple stock price trend in 2014.
+
+    Creates a line chart showing Apple's stock prices throughout 2014
+    with a dark blue background and yellow line for contrast.
+
+    Returns:
+        dict[str, go.Figure]: Dictionary with 'Apple SP' as key and the line chart as value
+    """
     apple_df = pd.read_csv("data/question-dataset/2014_apple_stocks.csv")
     apple_df["AAPL_x"] = pd.to_datetime(apple_df["AAPL_x"])
     fig1 = px.line(apple_df, x="AAPL_x", y="AAPL_y", title="Apple Stock Prices in 2014")
@@ -26,6 +71,14 @@ def question_1() -> dict[str, go.Figure]:
 
 
 def question_3() -> dict[str, go.Figure]:
+    """Generate visualization for Question 3: Monthly milk production heatmap (1962-1975).
+
+    Creates a heatmap showing milk production patterns by month and year,
+    using a blue color scale on a dark blue background.
+
+    Returns:
+        dict[str, go.Figure]: Dictionary with 'Milk Production' as key and the heatmap as value
+    """
     milk_df = pd.read_csv("data/question-dataset/monthly-milk-production-pounds.csv")
     milk_df["Month"] = pd.to_datetime(milk_df["Month"])
     milk_df["Year"] = milk_df["Month"].dt.year
@@ -57,6 +110,14 @@ def question_3() -> dict[str, go.Figure]:
 
 
 def question_2() -> dict[str, go.Figure]:
+    """Generate visualization for Question 2: NYC pigeon-related complaints map.
+
+    Creates an animated scatter map showing the locations of pigeon-related complaints
+    in NYC from 2010 to present, with animation by year and color-coding by borough.
+
+    Returns:
+        dict[str, go.Figure]: Dictionary with 'Pigeon DooDoo' as key and the map as value
+    """
     df = pd.read_csv("data/question-dataset/pigeon_poop_2010_to_present_20250302.csv")
     # Focus on pigeon-related complaints
     pigeon_df = df[df["Complaint Type"].str.contains("Pigeon|Bird|Litter", case=False)]
@@ -103,6 +164,14 @@ def question_2() -> dict[str, go.Figure]:
 
 
 def question_4() -> dict[str, go.Figure]:
+    """Generate visualization for Question 4: 3D visualization of Iris dataset.
+
+    Creates a 3D scatter plot showing the relationship between sepal length,
+    petal width, and petal length in the Iris dataset, color-coded by species class.
+
+    Returns:
+        dict[str, go.Figure]: Dictionary with 'Iris' as key and the 3D scatter plot as value
+    """
     iris_df = pd.read_csv("data/question-dataset/iris-data.csv")
 
     # Create the 3D scatter plot
@@ -143,5 +212,13 @@ def question_4() -> dict[str, go.Figure]:
 
 
 def question_5() -> dict[str, go.Figure]:
+    """Generate visualization for Question 5: JFK airport weather data.
+
+    This function appears to be incomplete or for testing purposes.
+    Currently, it only returns the first few rows of a weather dataset.
+
+    Returns:
+        pandas.DataFrame: First 5 rows of the JFK weather dataset
+    """
     airport_df = pd.read_csv("data/question-dataset/jfk_weather_sample.csv")
     return airport_df.head()
