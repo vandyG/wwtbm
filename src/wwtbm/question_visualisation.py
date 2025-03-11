@@ -1,17 +1,31 @@
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
-# us_city_df = pd.read_csv("data/question-dataset/2014_us_cities.csv")
+
+def get_ques_vis(number: int) -> dict:
+    index = [question_1, question_2, question_3, question_4]
+    return index[number]()
 
 
-def Q1():
+def question_1() -> dict[str, go.Figure]:
     apple_df = pd.read_csv("data/question-dataset/2014_apple_stocks.csv")
     apple_df["AAPL_x"] = pd.to_datetime(apple_df["AAPL_x"])
     fig1 = px.line(apple_df, x="AAPL_x", y="AAPL_y", title="Apple Stock Prices in 2014")
-    return fig1
+    fig1.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Stock Price (USD)",
+        plot_bgcolor="#000066",  # Change the background color of the plot
+        paper_bgcolor="#000066",  # Change the background color of the entire figure
+        font={"color": "white"},  # Change the font color to white for better visibility
+    )
+    fig1.update_yaxes(showgrid=True, gridcolor="grey", zeroline=True, zerolinecolor="grey")
+    fig1.update_xaxes(showgrid=True, gridcolor="grey", zeroline=True, zerolinecolor="grey")
+    fig1.update_traces(line={"color": "yellow"})
+    return {"Apple SP": fig1}
 
 
-def Q2():
+def question_3() -> dict[str, go.Figure]:
     milk_df = pd.read_csv("data/question-dataset/monthly-milk-production-pounds.csv")
     milk_df["Month"] = pd.to_datetime(milk_df["Month"])
     milk_df["Year"] = milk_df["Month"].dt.year
@@ -30,47 +44,68 @@ def Q2():
         title="Monthly Milk Production Heatmap (1962-1975)",
         xaxis_title="Month",
         yaxis_title="Year",
-        xaxis=dict(side="top"),
+        # xaxis=dict(side="top"),
     )
 
-    return fig1
-
-
-def Q3():
-    coffee_df = pd.read_csv("data/question-dataset/simplified_coffee.csv")
-    coffee_df1 = coffee_df[["origin", "roast"]]
-    grouped_counts = coffee_df1.groupby(["origin", "roast"]).size().reset_index(name="count")
-    # df_dominant = grouped_counts.loc[grouped_counts.groupby("origin")["count"].idxmax()]
-    print(grouped_counts["origin"].unique)
-    # Create a choropleth map
-    fig1 = px.scatter_geo(
-        grouped_counts,
-        locations="origin",
-        locationmode="country names",
-        color="roast",  # Different colors for roast types
-        size="count",  # Size of bubbles based on count
-        hover_name="origin",
-        hover_data={"roast": True, "count": True},
-        title="Coffee Roast Types by Country",
-        projection="orthographic",  # Change projection as needed
-        color_discrete_map={"Light": "yellow", "Medium-Light": "orange", "Medium": "brown", "Dark": "black"},
-        size_max=50,
-    )
     fig1.update_layout(
-        geo={
-            "showcoastlines": True,  # Show coastlines
-            "showland": True,  # Show land areas
-            "landcolor": "rgb(217, 217, 217)",  # Light gray for land
-            "showframe": True,  # Show map borders
-            "showcountries": True,  # Show country borders
-            "countrycolor": "black",  # Make country borders black
-        },
+        plot_bgcolor="#000066",  # Change the background color of the plot
+        paper_bgcolor="#000066",  # Change the background color of the entire figure
+        font={"color": "white"},  # Change the font color to white for better visibility
     )
-    return fig1
+
+    return {"Milk Production": fig1}
 
 
-def Q4():
+def question_2() -> dict[str, go.Figure]:
+    df = pd.read_csv("data/question-dataset/pigeon_poop_2010_to_present_20250302.csv")
+    # Focus on pigeon-related complaints
+    pigeon_df = df[df["Complaint Type"].str.contains("Pigeon|Bird|Litter", case=False)]
+    pigeon_df["year"] = pd.DatetimeIndex(pigeon_df["Created Date"]).year
+
+    pigeon_df = pigeon_df.sort_values(by="year")
+
+    # Create the map
+    fig = px.scatter_map(
+        pigeon_df,
+        lat="Latitude",
+        lon="Longitude",
+        color="Borough",
+        size_max=15,
+        zoom=9,
+        height=600,
+        # width=1200,
+        hover_name="Unique Key",
+        hover_data={
+            "Complaint Type": True,
+            "Created Date": True,
+            "Status": True,
+            "Latitude": False,
+            "Longitude": False,
+        },
+        title="NYC Pigeon Droppings & Related Complaints Map",
+        animation_frame="year",
+    )
+
+    # Update the map style
+    fig.update_layout(
+        mapbox_style="carto-positron",  # A clean, light map style
+        legend_title_text="Borough",
+        margin={"r": 0, "t": 50, "l": 0, "b": 0},
+    )
+
+    fig.update_layout(
+        plot_bgcolor="#000066",  # Change the background color of the plot
+        paper_bgcolor="#000066",  # Change the background color of the entire figure
+        font={"color": "white"},  # Change the font color to white for better visibility
+    )
+
+    return {"Pigeon DooDoo": fig}
+
+
+def question_4() -> dict[str, go.Figure]:
     iris_df = pd.read_csv("data/question-dataset/iris-data.csv")
+
+    # Create the 3D scatter plot
     fig1 = px.scatter_3d(
         iris_df,
         x="sepal length",
@@ -79,19 +114,34 @@ def Q4():
         color="class",
         title="3D Visualization of Iris Data",
     )
-    return fig1
+
+    # Update layout for background and grid colors
+    fig1.update_layout(
+        plot_bgcolor="#000066",  # Background color of the plot
+        paper_bgcolor="#000066",  # Background color of the entire figure
+        font={"color": "white"},  # Font color to white for visibility
+        scene={
+            "xaxis": {
+                "backgroundcolor": "#000066",  # Match grid background to plot background
+                "gridcolor": "grey",  # Keep gridlines grey
+                "zerolinecolor": "grey",  # Optional: set zeroline to grey too
+            },
+            "yaxis": {
+                "backgroundcolor": "#000066",  # Match grid background to plot background
+                "gridcolor": "grey",  # Keep gridlines grey
+                "zerolinecolor": "grey",
+            },
+            "zaxis": {
+                "backgroundcolor": "#000066",  # Match grid background to plot background
+                "gridcolor": "grey",  # Keep gridlines grey
+                "zerolinecolor": "grey",
+            },
+        },
+    )
+
+    return {"Iris": fig1}
 
 
-def Q5():
+def question_5() -> dict[str, go.Figure]:
     airport_df = pd.read_csv("data/question-dataset/jfk_weather_sample.csv")
     return airport_df.head()
-
-
-# def Q6():
-# fig1 = px.line(apple_df, x="AAPL_x", y="AAPL_y", title="Apple Stock Prices in 2014")
-# return fig1
-
-
-# fig = Q3()
-# fig.show()
-# print(fig)
