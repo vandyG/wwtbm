@@ -31,6 +31,7 @@ classifiers = [
 dependencies = [
     "dash-bootstrap-components>=1.7.1",
     "dash>=2.18.2",
+    "nbformat>=5.10.4",
     "numpy>=2.0.2",
     "openpyxl>=3.1.5",
     "pandas>=2.2.3",
@@ -83,7 +84,6 @@ dev = [
     "build>=1.2",
     "git-changelog>=2.5",
     "twine>=5.1",
-
     # ci
     "duty>=1.4",
     "ruff>=0.4",
@@ -94,7 +94,6 @@ dev = [
     "mypy>=1.10",
     "types-markdown>=3.6",
     "types-pyyaml>=6.0",
-
     # docs
     "black>=24.4",
     "markdown-callouts>=0.4",
@@ -109,4 +108,5 @@ dev = [
     "mkdocstrings[python]>=0.25",
     # YORE: EOL 3.10: Remove line.
     "tomli>=2.0; python_version < '3.11'",
+    "ipykernel>=6.29.5",
 ]
