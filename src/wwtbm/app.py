@@ -1,3 +1,28 @@
+"""Who Wants to Be a Millionaire Game Dashboard.
+
+This module implements an interactive Dash application that recreates the 'Who Wants to Be a Millionaire'
+game show experience. It provides a complete web-based interface with question management, timer functionality,
+visualizations, and leaderboards.
+
+The application features:
+- A question and multiple-choice answer display system
+- Interactive timer with audio cues
+- Data visualizations for each question
+- Audience poll functionality
+- Live leaderboard of player performance
+- Statistical performance analysis
+
+The module uses a combination of Dash components, Plotly visualizations, and Bootstrap styling
+to create a responsive and engaging game interface.
+
+Dependencies:
+    - dash: Core framework for the web application
+    - dash_bootstrap_components: Styling and layout components
+    - plotly: For interactive visualizations
+    - pandas: For data manipulation
+    - dataclasses: For structured data objects
+"""
+
 from dataclasses import dataclass
 
 import dash_bootstrap_components as dbc
@@ -12,6 +37,23 @@ from wwtbm.visualisation import get_answer_distribution_graph, get_user_performa
 
 @dataclass
 class GameTheme:
+    """Defines the color theme and styling for the game interface.
+
+    This dataclass provides a centralized way to manage colors and generate consistent
+    styles for various UI components throughout the application.
+
+    Attributes:
+        primary (str): Primary color for main elements
+        secondary (str): Secondary color for accents and highlights
+        hover (str): Color for hover states
+        background (str): Background color for the main application
+        text (str): Text color
+        accent (str): Accent color for special elements
+        success (str): Color for correct answers and success states
+        card_bg (str): Background color for cards
+        header_bg (str): Background color for headers
+    """
+
     primary: str = "#000066"
     secondary: str = "#4169E1"
     hover: str = "#000099"
@@ -23,17 +65,46 @@ class GameTheme:
     header_bg: str = "#1a1a1a"
 
     def get_modal_style(self) -> dict:
+        """Generate the styling dictionary for modal dialogs.
+
+        Returns:
+            dict: CSS style dictionary for modal components
+        """
         return {"backgroundColor": self.primary, "border": f"1px solid {self.secondary}"}
 
     def get_card_style(self) -> dict:
+        """Generate the styling dictionary for card components.
+
+        Returns:
+            dict: CSS style dictionary for card components
+        """
         return {"backgroundColor": self.card_bg, "border": f"1px solid {self.secondary}", "color": self.text}
 
     def get_header_style(self) -> dict:
+        """Generate the styling dictionary for header components.
+
+        Returns:
+            dict: CSS style dictionary for header components
+        """
         return {"backgroundColor": self.header_bg, "color": self.accent}
 
 
 class GameData:
+    """Manages the game data including questions, options, and player answers.
+
+    This class centralizes all game content and provides methods to interact with
+    and update the data during gameplay.
+
+    Attributes:
+        questions (list): List of game questions
+        options (dict): Dictionary mapping question indices to option lists
+        correct_answers (dict): Dictionary mapping question indices to correct answers
+        answer_points (dict): Dictionary mapping question numbers to point values
+        answer_data (DataFrame): Player answer data from external source
+    """
+
     def __init__(self):
+        """Initialize the game data with questions, options, and scoring information."""
         self.questions = [
             "1. What's the biggest fear of an iPhone user?",
             "2. What is the most persistent decoration on NYC statues and buildings?",
@@ -98,6 +169,11 @@ class GameData:
         self.answer_data = None
 
     def update_answer_data(self) -> DataFrame:
+        """Fetch and update the player answer data from external source.
+
+        Returns:
+            DataFrame: Updated answer data
+        """
         self.answer_data = get_answer_data()
 
 
@@ -105,9 +181,21 @@ def create_option_div(
     option_letter: str,
     option_text: str,
     correct_answer: str,
-    time_up: bool,
+    time_up: bool,  # noqa: FBT001
     theme: GameTheme,
 ) -> html.Div:
+    """Create a styled div for an answer option.
+
+    Args:
+        option_letter (str): The option letter (A, B, C, or D)
+        option_text (str): The text content of the option
+        correct_answer (str): The letter of the correct answer
+        time_up (bool): Whether the timer has expired
+        theme (GameTheme): The game's theme object for styling
+
+    Returns:
+        html.Div: Styled div containing the answer option
+    """
     style = {"backgroundColor": theme.success if time_up and option_letter == correct_answer else "inherit"}
     return html.Div(
         html.Span(f"{option_letter}: {option_text}"),
@@ -119,9 +207,20 @@ def create_option_div(
 def create_options_grid(
     options: list[tuple[str, str]],
     correct_answer: str,
-    time_up: bool,
+    time_up: bool,  # noqa: FBT001
     theme: GameTheme,
 ) -> list[dbc.Row]:
+    """Create a grid layout of answer options.
+
+    Args:
+        options (list): List of tuples with (letter, text) for each option
+        correct_answer (str): The letter of the correct answer
+        time_up (bool): Whether the timer has expired
+        theme (GameTheme): The game's theme object for styling
+
+    Returns:
+        list: List of Bootstrap rows containing the options
+    """
     return [
         dbc.Row(
             [
@@ -137,6 +236,14 @@ def create_options_grid(
 
 
 def create_modals(theme: GameTheme) -> list[dbc.Modal]:
+    """Create the modal dialogs for visualizations and audience poll.
+
+    Args:
+        theme (GameTheme): The game's theme object for styling
+
+    Returns:
+        list: List of Bootstrap modal components
+    """
     modal_style = theme.get_modal_style()
     header_style = {"border": f"1px solid {theme.secondary}"}
 
@@ -179,6 +286,15 @@ def create_modals(theme: GameTheme) -> list[dbc.Modal]:
 
 
 def create_modal_tabs(figures: dict, theme: GameTheme) -> list[dbc.Tab]:
+    """Create tabs for the visualization modal.
+
+    Args:
+        figures (dict): Dictionary of visualization figures keyed by name
+        theme (GameTheme): The game's theme object for styling
+
+    Returns:
+        list: List of Bootstrap tab components
+    """
     return [
         dbc.Tab(
             dbc.Card(
@@ -194,6 +310,15 @@ def create_modal_tabs(figures: dict, theme: GameTheme) -> list[dbc.Tab]:
 
 
 def create_leaderboard(leader_data: dict[str, int], theme: GameTheme) -> dbc.Table:
+    """Create a styled leaderboard table.
+
+    Args:
+        leader_data (dict): Dictionary mapping player names to scores
+        theme (GameTheme): The game's theme object for styling
+
+    Returns:
+        dbc.Table: Bootstrap table component displaying the leaderboard
+    """
     return dbc.Table(
         html.Tbody(
             [
@@ -230,7 +355,16 @@ def create_leaderboard(leader_data: dict[str, int], theme: GameTheme) -> dbc.Tab
     )
 
 
-def create_statistics_card(fig: go.Figure, theme: GameTheme) -> dbc.Col:
+def create_statistics_card(fig: go.Figure, theme: GameTheme) -> dbc.Col:  # noqa: ARG001
+    """Create a card displaying player performance statistics.
+
+    Args:
+        fig (go.Figure): Plotly figure with statistics visualization
+        theme (GameTheme): The game's theme object for styling
+
+    Returns:
+        dbc.Col: Bootstrap column containing the statistics card
+    """
     return dbc.CardBody(
         [
             dcc.Graph(
@@ -242,6 +376,18 @@ def create_statistics_card(fig: go.Figure, theme: GameTheme) -> dbc.Col:
 
 
 def create_game_layout(app: Dash, theme: GameTheme) -> html.Div:
+    """Create the main layout for the game application.
+
+    This function builds the complete UI structure including the question display,
+    answer options, timer, navigation controls, leaderboard, and statistics areas.
+
+    Args:
+        app (Dash): The Dash application instance
+        theme (GameTheme): The game's theme object for styling
+
+    Returns:
+        html.Div: The main application layout
+    """
     return html.Div(
         [
             # Logo
@@ -370,7 +516,19 @@ def create_game_layout(app: Dash, theme: GameTheme) -> html.Div:
     )
 
 
-def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):  # noqa: ANN201, D103
+def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):  # noqa: ANN201
+    """Initialize all the callback functions for the application.
+
+    This function sets up the interactive behavior of the application by defining
+    callbacks for timer updates, question navigation, modal interactions, and
+    leaderboard/statistics updates.
+
+    Args:
+        app (Dash): The Dash application instance
+        game_data (GameData): The game data instance
+        theme (GameTheme): The game's theme object for styling
+    """
+
     @app.callback(
         [
             Output("timer-display", "children"),
@@ -382,6 +540,15 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):  # noqa: A
         [Input("timer-interval", "n_intervals"), Input("current-question-index", "data")],
     )
     def update_timer(n_intervals, question_index):  # noqa: ANN001, ANN202, ARG001
+        """Update the timer display and audio based on timer state.
+
+        Args:
+            n_intervals: Number of timer intervals elapsed
+            question_index: Current question index (unused but required for callback)
+
+        Returns:
+            tuple: Timer display, audio loop state, audio source, time-up flag, interval count
+        """
         ctx = callback_context
         if ctx.triggered_id == "current-question-index":
             return (
@@ -393,7 +560,7 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):  # noqa: A
             )
 
         time_left = 30 - (n_intervals % 30)
-        if time_left == 30 and n_intervals != 0:
+        if time_left == 30 and n_intervals != 0:  # noqa: PLR2004
             return (
                 html.H2("Time's up!", className="text-danger"),
                 False,
@@ -408,6 +575,15 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):  # noqa: A
         [Input("current-question-index", "data"), Input("time-up", "data")],
     )
     def update_question_and_options(current_index: int, time_up: bool):  # noqa: ANN202, FBT001
+        """Update the displayed question and answer options.
+
+        Args:
+            current_index: Index of the current question
+            time_up: Whether the timer has expired
+
+        Returns:
+            tuple: Question text, options grid
+        """
         question = game_data.questions[current_index]
         current_options = game_data.options[current_index]
         correct_answer = game_data.correct_answers[current_index]
@@ -420,6 +596,16 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):  # noqa: A
         prevent_initial_call=True,
     )
     def navigate_questions(next_clicks: int, prev_clicks: int, current_index: int):  # noqa: ANN202, ARG001
+        """Navigate between questions using the previous and next buttons.
+
+        Args:
+            next_clicks: Number of next button clicks
+            prev_clicks: Number of previous button clicks
+            current_index: Current question index
+
+        Returns:
+            int: Updated question index
+        """
         ctx = callback_context
         if not ctx.triggered:
             return current_index
@@ -442,6 +628,16 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):  # noqa: A
         State("current-question-index", "data"),
     )
     def toggle_question_modal(n_clicks: int, is_open: bool, curr_ques: int):  # noqa: ANN202, FBT001
+        """Toggle the question visualization modal and update its content.
+
+        Args:
+            n_clicks: Number of clicks on the question section
+            is_open: Current open state of the modal
+            curr_ques: Current question index
+
+        Returns:
+            tuple: Modal open state, modal header content, tab content
+        """
         if n_clicks:
             figs = qv.get_ques_vis(curr_ques)
 
@@ -459,6 +655,17 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):  # noqa: A
         State("current-question-index", "data"),
     )
     def toggle_answer_modal(n_clicks: int, time_up: bool, is_open: bool, curr_ques: int):  # noqa: ANN202, FBT001
+        """Toggle the answer distribution modal and update its content.
+
+        Args:
+            n_clicks: Number of clicks on the options grid
+            time_up: Whether the timer has expired
+            is_open: Current open state of the modal
+            curr_ques: Current question index
+
+        Returns:
+            tuple: Modal open state, modal content, reset click counter
+        """
         if n_clicks and time_up:
             answer_data = game_data.answer_data
             # new_index = [chr(ord + 96).upper() for ord in answer_data["Answer"]]
@@ -473,6 +680,14 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):  # noqa: A
         Input("time-up", "data"),
     )
     def update_leaderboard(time_up: bool):  # noqa: ANN202, FBT001
+        """Update the leaderboard and statistics displays.
+
+        Args:
+            time_up: Whether the timer has expired
+
+        Returns:
+            tuple: Leaderboard content, statistics card content
+        """
         if time_up:
             game_data.update_answer_data()
             answer_data = game_data.answer_data
@@ -492,7 +707,15 @@ def init_callbacks(app: Dash, game_data: GameData, theme: GameTheme):  # noqa: A
         return no_update
 
 
-def run_app(debug: bool = False) -> None:  # noqa: D103, FBT001, FBT002
+def run_app(debug: bool = False) -> None:  # noqa: FBT001, FBT002
+    """Initialize and run the Dash application.
+
+    This function creates the Dash app instance, initializes the game data and theme,
+    sets up the layout and callbacks, and starts the server.
+
+    Args:
+        debug (bool, optional): Whether to run the app in debug mode. Defaults to False.
+    """
     app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY], assets_folder="assets")
     theme = GameTheme()
     game_data = GameData()
